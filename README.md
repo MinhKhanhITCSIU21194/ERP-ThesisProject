@@ -42,6 +42,7 @@ back-end/
 ### Installation
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
@@ -51,6 +52,7 @@ back-end/
 ### Development
 
 Run the development server with hot reload:
+
 ```bash
 npm run dev
 ```
@@ -60,6 +62,7 @@ The server will start on `http://localhost:3000`
 ### Production
 
 Run the production server:
+
 ```bash
 npm start
 ```
@@ -67,6 +70,7 @@ npm start
 ## API Endpoints
 
 ### Base URL
+
 `http://localhost:3000`
 
 ### Available Endpoints
