@@ -1,8 +1,7 @@
-const express = require("express");
-const router = express.Router();
+import express from "express";
+import usersRoutes from "./users";
 
-// Import route modules
-const usersRoutes = require("./users");
+const router = express.Router();
 
 // Mount routes
 router.use("/users", usersRoutes);
@@ -12,4 +11,4 @@ router.use("/users", usersRoutes);
 // router.use('/orders', ordersRoutes);
 // router.use('/inventory', inventoryRoutes);
 
-module.exports = router;
+export default router;
