@@ -1,8 +1,8 @@
-const express = require("express");
+import express, { Request, Response } from "express";
 const router = express.Router();
 
 // GET /api/users
-router.get("/", (req, res) => {
+router.get("/", (req: Request, res: Response) => {
   res.json({
     message: "Users endpoint",
     users: [],
@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
 });
 
 // GET /api/users/:id
-router.get("/:id", (req, res) => {
+router.get("/:id", (req: Request, res: Response) => {
   const { id } = req.params;
   res.json({
     message: `User with ID: ${id}`,
@@ -19,7 +19,7 @@ router.get("/:id", (req, res) => {
 });
 
 // POST /api/users
-router.post("/", (req, res) => {
+router.post("/", (req: Request, res: Response) => {
   const userData = req.body;
   res.status(201).json({
     message: "User created successfully",
