@@ -15,7 +15,7 @@ export class Role {
 
   @Column({ type: "varchar", length: 50, unique: true })
   @Index()
-  roleName!: string;
+  name!: string;
 
   @Column({ type: "jsonb", default: {} })
   permissions!: Record<string, any>;

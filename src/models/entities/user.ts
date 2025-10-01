@@ -28,6 +28,14 @@ export class User {
   email!: string;
 
   @Column({ type: "varchar", length: 255 })
+  @Index()
+  firstName!: string;
+
+  @Column({ type: "varchar", length: 255 })
+  @Index()
+  lastName!: string;
+
+  @Column({ type: "varchar", length: 255 })
   passwordHash!: string;
 
   @Column({ type: "boolean", default: true })
@@ -47,6 +55,10 @@ export class User {
 
   @Column({ type: "int", default: 0 })
   failedLoginAttempts!: number;
+
+  @Column({ type: "boolean", default: false })
+  @Index()
+  isEmailVerified!: boolean;
 
   @Column({ type: "timestamp", nullable: true })
   accountLockedUntil?: Date;

@@ -4,6 +4,7 @@ import { User } from "../models/entities/user";
 import { Role } from "../models/entities/role";
 import { Session } from "../models/entities/session";
 import { Notification } from "../models/entities/notification";
+import { EmailVerification } from "../models/entities/email-verification-code";
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || "erp_system",
   synchronize: process.env.NODE_ENV === "development", // Only in development
   logging: process.env.NODE_ENV === "development",
-  entities: [User, Role, Session, Notification],
+  entities: [User, Role, Session, Notification, EmailVerification],
   migrations: ["src/migrations/*.ts"],
   subscribers: ["src/subscribers/*.ts"],
 });

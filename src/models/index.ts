@@ -9,5 +9,16 @@ import { User } from "./entities/user";
 import { Role } from "./entities/role";
 import { Session } from "./entities/session";
 import { Notification } from "./entities/notification";
+import {
+  EmailVerification,
+  VerificationType,
+} from "./entities/email-verification-code";
 
-export const entities = [User, Role, Session, Notification];
+export const entities = [
+  User,
+  Role,
+  Session,
+  Notification,
+  EmailVerification,
+  VerificationType,
+];

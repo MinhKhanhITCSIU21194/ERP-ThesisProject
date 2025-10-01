@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import { initializeDatabase } from "./config/typeorm";
 import dotenv from "dotenv";
+import router from "./routes";
 
 dotenv.config();
 
@@ -15,20 +16,21 @@ app.use(cookieParser());
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 
-// Routes
-app.get("/", async (req: Request, res: Response): Promise<void> => {
-  try {
-    res.json({
-      message: "Hello, World! ERP Backend is running with TypeORM + UUIDs",
-      timestamp: new Date().toISOString(),
-      status: "Database connected successfully with TypeORM",
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: "Something went wrong" });
-  }
+app.get("/", (req: Request, res: Response) => {
+  res.json({
+    message: "ERP System API is running",
+    version: "1.0.0",
+    endpoints: {
+      users: "/api/users",
+      auth: "/api/auth",
+      employees: "/api/employees",
+    },
+    docs: "/api/docs",
+  });
 });
 
+// Routes
+app.use("/api", router);
 // Initialize database and start server
 const startServer = async () => {
   try {
@@ -37,8 +39,6 @@ const startServer = async () => {
 
     app.listen(PORT, (): void => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`✅ TypeORM initialized with UUID support`);
       console.log(`🔗 Test the API: http://localhost:${PORT}`);
     });
   } catch (error) {
