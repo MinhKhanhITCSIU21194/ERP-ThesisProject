@@ -5,8 +5,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToMany,
+  JoinTable,
   Index,
 } from "typeorm";
+import { Permission } from "./permission";
 
 @Entity("roles")
 export class Role {
@@ -17,9 +20,6 @@ export class Role {
   @Index()
   name!: string;
 
-  @Column({ type: "jsonb", default: {} })
-  permissions!: Record<string, any>;
-
   @Column({ type: "text", nullable: true })
   description?: string;
 
@@ -27,25 +27,54 @@ export class Role {
   @Index()
   isActive!: boolean;
 
+  @Column({ type: "varchar", length: 255, nullable: true })
+  createdBy?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  // Relationships - using string reference to avoid circular imports
+  // Relationships
   @OneToMany("User", "role")
   users!: any[];
 
+  @ManyToMany(() => Permission, (permission) => permission.roles, {
+    eager: true, // Automatically load permissions with role
+    cascade: true,
+  })
+  @JoinTable({
+    name: "role_permissions",
+    joinColumn: { name: "roleId", referencedColumnName: "roleId" },
+    inverseJoinColumn: { name: "permissionId", referencedColumnName: "id" },
+  })
+  permissions!: Permission[];
+
   // Methods
   hasPermission(resource: string, action: string): boolean {
-    if (this.permissions.all === true) {
-      return true;
-    }
+    const permission = this.permissions?.find((p) => p.permission === resource);
+    if (!permission) return false;
 
-    return (
-      this.permissions[resource] && this.permissions[resource][action] === true
-    );
+    // Map action to permission field
+    const actionMap: Record<string, keyof Permission> = {
+      view: "canView",
+      read: "canRead",
+      create: "canCreate",
+      update: "canUpdate",
+      delete: "canDelete",
+      approve: "canApprove",
+      reject: "canReject",
+      assign: "canAssign",
+      submit: "canSubmit",
+      cancel: "canCancel",
+      import: "canImport",
+      export: "canExport",
+      report: "canReport",
+    };
+
+    const field = actionMap[action];
+    return field ? permission[field] === true : false;
   }
 
   canManage(resource: string): boolean {
@@ -55,5 +84,9 @@ export class Role {
       this.hasPermission(resource, "update") &&
       this.hasPermission(resource, "delete")
     );
+  }
+
+  getPermissionByResource(resource: string): Permission | undefined {
+    return this.permissions?.find((p) => p.permission === resource);
   }
 }

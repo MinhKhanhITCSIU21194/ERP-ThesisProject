@@ -2,9 +2,14 @@ import { DataSource } from "typeorm";
 import dotenv from "dotenv";
 import { User } from "../models/entities/user";
 import { Role } from "../models/entities/role";
+import { Permission } from "../models/entities/permission";
 import { Session } from "../models/entities/session";
 import { Notification } from "../models/entities/notification";
 import { EmailVerification } from "../models/entities/email-verification-code";
+import { Employee } from "../models/entities/employee";
+import { Department } from "../models/entities/department";
+import { Position } from "../models/entities/position";
+import { EmployeeDepartment } from "../models/entities/employee-department";
 
 dotenv.config();
 
@@ -17,7 +22,18 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || "erp_system",
   synchronize: process.env.NODE_ENV === "development", // Only in development
   logging: process.env.NODE_ENV === "development",
-  entities: [User, Role, Session, Notification, EmailVerification],
+  entities: [
+    User,
+    Role,
+    Permission,
+    Session,
+    Notification,
+    EmailVerification,
+    Employee,
+    Department,
+    Position,
+    EmployeeDepartment,
+  ],
   migrations: ["src/migrations/*.ts"],
   subscribers: ["src/subscribers/*.ts"],
 });

@@ -48,45 +48,59 @@ export const signIn = async (req: Request, res: Response) => {
       });
     }
 
-    // Call auth service
-    const result = await authService.signIn(email, password);
+    // Call auth service with request and response for cookie support
+    const result = await authService.signIn(email, password, req, res);
 
     if (!result.success) {
+      // Handle specific error cases
+      if (result.accountLocked) {
+        return res.status(423).json({
+          success: false,
+          message: result.message,
+          accountLocked: true,
+          lockoutTime: result.lockoutTime,
+          remainingAttempts: result.remainingAttempts,
+        });
+      }
+
+      if (result.emailVerificationRequired) {
+        return res.status(403).json({
+          success: false,
+          message: result.message,
+          emailVerificationRequired: true,
+        });
+      }
+
       return res.status(401).json({
         success: false,
         message: result.message,
+        remainingAttempts: result.remainingAttempts,
       });
     }
 
-    // Return successful response
+    // Return successful response with both token and cookie support
     return res.json({
       success: true,
-      token: result.token,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken, // Only sent if cookies are disabled
+      sessionId: result.sessionId,
       tokenType: "Bearer",
-      expiresIn: result.expiresIn || "1d", // Token expiration time string
-      expiresAt:
-        result.expiresAt?.toISOString() ||
-        new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Exact expiry timestamp
+      expiresIn: result.expiresIn || "30m",
+      expiresAt: result.expiresAt?.toISOString(),
       user: {
         id: result.user!.userId,
         email: result.user!.email,
         firstName: result.user!.firstName,
         lastName: result.user!.lastName,
         fullName: `${result.user!.firstName} ${result.user!.lastName}`,
-        username: result.user!.username,
-        employeeId: result.user!.employeeId,
-        role: {
-          id: result.user!.roleId,
-          name: result.user!.role?.name || "Unknown",
-          permissions: result.user!.role?.permissions || {},
-        },
+        role: result.user!.role, // Now contains the full role object with permissions
         isActive: result.user!.isActive,
+        isEmailVerified: result.user!.isEmailVerified,
         lastLogin: result.user!.lastLogin,
-        passwordChangedAt: result.user!.passwordChangedAt,
-        shouldChangePassword: result.user!.shouldForcePasswordChange(),
+        unreadNotifications: result.user!.unreadNotifications || 0,
       },
       loginTime: new Date().toISOString(),
-      message: "Sign in successful",
+      message: result.message || "Sign in successful",
     });
   } catch (error) {
     console.error("SignIn controller error:", error);
@@ -178,6 +192,140 @@ export const verifyEmailCode = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+};
+export const validateSession = async (req: Request, res: Response) => {
+  try {
+    const { CookieService } = await import("../services/cookie.service");
+    const cookieService = new CookieService();
+
+    // Get refresh token and session ID from cookies
+    const refreshToken = cookieService.getRefreshTokenFromCookies(req);
+    const sessionId = cookieService.getSessionIdFromCookies(req);
+
+    console.log("Session validation - cookies found:", {
+      hasRefreshToken: !!refreshToken,
+      hasSessionId: !!sessionId,
+    });
+
+    if (!refreshToken || !sessionId) {
+      return res.status(401).json({
+        success: false,
+        message: "No valid session found",
+      });
+    }
+
+    // Validate the refresh token and get user info
+    const result = await authService.refreshAccessToken(refreshToken);
+
+    if (!result.success) {
+      // Clear invalid cookies
+      cookieService.clearAllAuthCookies(res);
+      return res.status(401).json({
+        success: false,
+        message: "Session expired",
+      });
+    }
+
+    // Set new access token cookie
+    if (result.accessToken) {
+      cookieService.setAccessTokenCookie(res, result.accessToken);
+      cookieService.setSessionCookie(res, sessionId);
+    }
+
+    // Return user information with tokens
+    return res.json({
+      success: true,
+      accessToken: result.accessToken,
+      refreshToken: refreshToken, // Return the same refresh token
+      sessionId: sessionId,
+      tokenType: "Bearer",
+      expiresIn: "30m",
+      expiresAt: result.expiresAt?.toISOString(),
+      user: {
+        userId: result.user!.userId,
+        email: result.user!.email,
+        firstName: result.user!.firstName,
+        lastName: result.user!.lastName,
+        fullName: `${result.user!.firstName} ${result.user!.lastName}`,
+        role: result.user!.role,
+        isEmailVerified: result.user!.isEmailVerified,
+        lastLogin: result.user!.lastLogin,
+        createdAt: result.user!.createdAt,
+      },
+      message: "Session is valid",
+    });
+  } catch (error) {
+    console.error("Session validation error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during session validation",
+    });
+  }
+};
+
+export const setNewPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, newPassword, confirmPassword, uuID } = req.body;
+
+    // Validate input
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "User identifier and new password are required",
+        errors: [],
+      });
+    }
+
+    // Call auth service to set new password and sign user in
+    const result = await authService.setNewPassword(
+      email,
+      newPassword,
+      confirmPassword,
+      req,
+      res
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+        errors: result.errors || [],
+      });
+    }
+
+    // Return successful response with authentication data
+    return res.json({
+      success: true,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      sessionId: result.sessionId,
+      tokenType: "Bearer",
+      expiresIn: result.expiresIn,
+      expiresAt: result.expiresAt?.toISOString(),
+      user: {
+        id: result.user!.userId,
+        email: result.user!.email,
+        firstName: result.user!.firstName,
+        lastName: result.user!.lastName,
+        fullName: `${result.user!.firstName} ${result.user!.lastName}`,
+        role: result.user!.role, // Now contains the full role object with permissions
+        isActive: result.user!.isActive,
+        isEmailVerified: result.user!.isEmailVerified,
+        lastLogin: result.user!.lastLogin,
+        unreadNotifications: result.user!.unreadNotifications || 0,
+      },
+      loginTime: new Date().toISOString(),
+      message:
+        result.message || "Password updated and user signed in successfully",
+    });
+  } catch (error) {
+    console.error("Set new password controller error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      errors: [],
     });
   }
 };
