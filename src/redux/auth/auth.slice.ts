@@ -8,6 +8,7 @@ import {
   requestEmailVerification,
   requestSignIn,
   verifyEmailCode,
+  changePassword,
 } from "../../services/auth";
 import TokenService from "../../services/token.service";
 
@@ -24,7 +25,7 @@ export type AuthState = {
   refreshToken?: string;
 };
 
-export const initUserState: AuthState = {
+export const initAuthState: AuthState = {
   success: false,
   user: undefined,
   error: undefined,
@@ -36,7 +37,7 @@ export const initUserState: AuthState = {
 
 export const authSlice = createSlice({
   name: "auth",
-  initialState: initUserState,
+  initialState: initAuthState,
   reducers: {
     logout: (state) => {
       state.success = false;
@@ -172,6 +173,25 @@ export const authSlice = createSlice({
         }
       })
       .addCase(verifyEmailCode.rejected, (state, action) => {
+        state.isLoading = false;
+        state.success = false;
+        state.error = action.payload as string;
+      })
+      .addCase(changePassword.pending, (state) => {
+        state.isLoading = true;
+        state.error = undefined;
+      })
+      .addCase(changePassword.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.success = true;
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
+        state.sessionValid = true;
+        state.error = undefined;
+        // User is now logged in after password change
+      })
+      .addCase(changePassword.rejected, (state, action) => {
         state.isLoading = false;
         state.success = false;
         state.error = action.payload as string;

@@ -12,12 +12,12 @@ const getPageTitle = (pathname: string): string => {
     "/dashboard/employee/contract": "Contract Management",
     "/dashboard/employee/leave": "Leave Requests",
     "/dashboard/projects": "Projects",
-    "/dashboard/settings/department": "Department Management",
-    "/dashboard/settings/position": "Position Management",
-    "/dashboard/settings/holiday": "Holiday Management",
-    "/dashboard/settings/leave-type": "Leave Type Management",
-    "/dashboard/settings/user": "User Management",
-    "/dashboard/settings/role": "Role Management",
+    "/admin/settings/department": "Department Management",
+    "/admin/settings/position": "Position Management",
+    "/admin/settings/holiday": "Holiday Management",
+    "/admin/settings/leave-type": "Leave Type Management",
+    "/admin/settings/user": "User Management",
+    "/admin/settings/role": "Role Management",
   };
 
   return routes[pathname] || "Dashboard";

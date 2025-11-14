@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Box,
   IconButton,
@@ -58,36 +58,36 @@ const SETTINGS_SUBTABS = [
   {
     name: "Department",
     icon: ApartmentIcon,
-    path: "/dashboard/settings/department",
+    path: "/admin/settings/department",
     requiredRole: UserPermission.DEPARTMENT_MANAGEMENT,
     canView: true,
   },
-  { name: "Position", icon: PersonIcon, path: "/dashboard/settings/position" },
+  { name: "Position", icon: PersonIcon, path: "/admin/settings/position" },
   {
     name: "Holiday",
     icon: CalendarMonthIcon,
-    path: "/dashboard/settings/holiday",
+    path: "/admin/settings/holiday",
     requiredRole: UserPermission.HOLIDAY_MANAGEMENT,
     canView: true,
   },
   {
     name: "Leave Type",
     icon: CategoryIcon,
-    path: "/dashboard/settings/leave-type",
+    path: "/admin/settings/leave-type",
     requiredRole: UserPermission.LEAVE_TYPE_MANAGEMENT,
     canView: true,
   },
   {
     name: "User Management",
     icon: ManageAccountsIcon,
-    path: "/dashboard/settings/user",
+    path: "/admin/settings/user",
     requiredRole: UserPermission.USER_MANAGEMENT,
     canView: true,
   },
   {
     name: "Role",
     icon: SecurityIcon,
-    path: "/dashboard/settings/role",
+    path: "/admin/settings/role",
     requiredRole: UserPermission.ROLE_MANAGEMENT,
     canView: true,
   },
@@ -118,43 +118,193 @@ const TABS = [
   },
 ];
 
+const NavbarItem = React.memo(
+  ({ tab, user, location, hovered, openDropdown, handleTabClick }: any) => {
+    const isActive = location.pathname.startsWith(
+      tab.path || `/dashboard/${tab.name.toLowerCase()}`
+    );
+    const hasSubTabs = tab.subTabs && tab.subTabs.length > 0;
+
+    return (
+      <Box>
+        <ListItem disablePadding>
+          {tab.path ? (
+            <ListItemButton
+              component={Link}
+              to={tab.path}
+              sx={{
+                px: 2,
+                py: 1.5,
+                borderRadius: 2,
+                bgcolor: isActive ? "#e0e0e0" : "transparent",
+                "&:hover": { bgcolor: "#d0d0d0" },
+                minHeight: 56,
+                width: "100%",
+                transition: "background-color 0.15s ease-out",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 40,
+                  width: 40,
+                  display: "flex",
+                  justifyContent: "center",
+                  color: "#222",
+                }}
+              >
+                <tab.icon />
+              </ListItemIcon>
+              <Box
+                sx={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  flex: 1,
+                }}
+              >
+                <ListItemText
+                  primary={tab.name}
+                  sx={{ color: "#222", fontWeight: 600, m: 0 }}
+                />
+              </Box>
+            </ListItemButton>
+          ) : (
+            <ListItemButton
+              onClick={() => handleTabClick(tab.name, hasSubTabs)}
+              sx={{
+                px: 2,
+                py: 1.5,
+                borderRadius: 2,
+                bgcolor: isActive ? "#e0e0e0" : "transparent",
+                "&:hover": { bgcolor: "#d0d0d0" },
+                minHeight: 56,
+                width: "100%",
+                transition: "background-color 0.15s ease-out",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 40,
+                  width: 40,
+                  display: "flex",
+                  justifyContent: "center",
+                  color: "#222",
+                }}
+              >
+                <tab.icon />
+              </ListItemIcon>
+              <Box
+                sx={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  flex: 1,
+                }}
+              >
+                <ListItemText
+                  primary={tab.name}
+                  sx={{ color: "#222", fontWeight: 600, m: 0 }}
+                />
+                {hasSubTabs &&
+                  (openDropdown === tab.name ? (
+                    <ArrowDropDownIcon sx={{ ml: 1 }} />
+                  ) : (
+                    <ArrowRightIcon sx={{ ml: 1 }} />
+                  ))}
+              </Box>
+            </ListItemButton>
+          )}
+        </ListItem>
+        {/* Dropdown for sub-tabs inside navbar */}
+        {hasSubTabs && (
+          <Collapse in={openDropdown === tab.name} timeout="auto" unmountOnExit>
+            <List sx={{ pl: 2, bgcolor: "#c0c0c0" }}>
+              {tab.subTabs
+                .filter((sub: any) => {
+                  if (!sub.requiredRole) return true;
+                  return user?.role.permissions.some(
+                    (permission: any) =>
+                      permission.permission === sub.requiredRole &&
+                      permission.canView === sub.canView
+                  );
+                })
+                .map((sub: any) => (
+                  <ListItemButton
+                    key={sub.name}
+                    component={Link}
+                    to={sub.path}
+                    sx={{
+                      py: 1,
+                      px: 2,
+                      borderRadius: 1,
+                      color: "#222",
+                      fontSize: "0.875rem",
+                      transition: "background-color 0.15s ease-out",
+                      "&:hover": { bgcolor: "#d0d0d0" },
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 0, mr: 1.5, color: "#222" }}>
+                      <sub.icon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={sub.name}
+                      primaryTypographyProps={{
+                        fontSize: "0.875rem",
+                      }}
+                    />
+                  </ListItemButton>
+                ))}
+            </List>
+          </Collapse>
+        )}
+      </Box>
+    );
+  }
+);
+
 function Navbar() {
   const { user } = useAppSelector(selectAuth);
-  const [hovered, setHovered] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const location = useLocation();
 
-  const handleTabClick = (tabName: string, hasSubTabs: boolean) => {
+  const handleTabClick = useCallback((tabName: string, hasSubTabs: boolean) => {
     if (hasSubTabs) {
-      setOpenDropdown(openDropdown === tabName ? null : tabName);
+      setOpenDropdown((prev) => (prev === tabName ? null : tabName));
     }
-  };
-
-  const handleMouseEnter = React.useCallback(() => {
-    setHovered(true);
   }, []);
 
-  const handleMouseLeave = React.useCallback(() => {
-    setHovered(false);
-    setOpenDropdown(null); // Close dropdowns when mouse leaves
-  }, []);
+  // Memoize filtered tabs to prevent re-filtering on every render
+  const visibleTabs = useMemo(() => {
+    return TABS.filter((tab) =>
+      user?.role.permissions.some(
+        (permission) =>
+          permission.permission === tab.requiredRole &&
+          permission.canView === tab.canView
+      )
+    );
+  }, [user?.role.permissions]);
 
   return (
     <Box
       sx={{
         position: "relative",
         background: "#b0b0b0",
-        transition: "width 0.2s ease-out",
-        width: hovered ? 240 : 70,
-        minWidth: 70,
+        width: 180,
+        minWidth: 180,
+        flexShrink: 0,
         zIndex: 100,
         boxShadow: 2,
         overflowX: "hidden",
         overflowY: "auto",
-        willChange: "width", // Optimize for width transitions
+        // Reduce browser reflow cost
+        contain: "layout style paint",
       }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       <Box
         sx={{
@@ -165,172 +315,17 @@ function Navbar() {
         }}
       >
         <List sx={{ width: "100%" }}>
-          {TABS.map((tab) => {
-            if (
-              user?.role.permissions.some(
-                (permission) =>
-                  permission.permission == tab.requiredRole &&
-                  permission.canView == tab.canView
-              )
-            ) {
-              const isActive = location.pathname.startsWith(
-                tab.path || `/dashboard/${tab.name.toLowerCase()}`
-              );
-              const hasSubTabs = tab.subTabs && tab.subTabs.length > 0;
-              return (
-                <Box key={tab.name}>
-                  <ListItem disablePadding>
-                    {tab.path ? (
-                      <ListItemButton
-                        component={Link}
-                        to={tab.path}
-                        sx={{
-                          px: 2,
-                          py: 1.5,
-                          borderRadius: 2,
-                          bgcolor: isActive ? "#e0e0e0" : "transparent",
-                          "&:hover": { bgcolor: "#d0d0d0" },
-                          minHeight: 56,
-                          width: "100%",
-                          transition: "background-color 0.15s ease-out",
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            minWidth: 40,
-                            width: 40,
-                            display: "flex",
-                            justifyContent: "center",
-                            color: "#222",
-                          }}
-                        >
-                          <tab.icon />
-                        </ListItemIcon>
-                        <Box
-                          sx={{
-                            opacity: hovered ? 1 : 0,
-                            transition: "opacity 0.2s ease-out",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            display: hovered ? "flex" : "none",
-                            alignItems: "center",
-                            flex: 1,
-                            willChange: "opacity",
-                          }}
-                        >
-                          <ListItemText
-                            primary={tab.name}
-                            sx={{ color: "#222", fontWeight: 600, m: 0 }}
-                          />
-                        </Box>
-                      </ListItemButton>
-                    ) : (
-                      <ListItemButton
-                        onClick={() => handleTabClick(tab.name, hasSubTabs)}
-                        sx={{
-                          px: 2,
-                          py: 1.5,
-                          borderRadius: 2,
-                          bgcolor: isActive ? "#e0e0e0" : "transparent",
-                          "&:hover": { bgcolor: "#d0d0d0" },
-                          minHeight: 56,
-                          width: "100%",
-                          transition: "background-color 0.15s ease-out",
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            minWidth: 40,
-                            width: 40,
-                            display: "flex",
-                            justifyContent: "center",
-                            color: "#222",
-                          }}
-                        >
-                          <tab.icon />
-                        </ListItemIcon>
-                        <Box
-                          sx={{
-                            opacity: hovered ? 1 : 0,
-                            transition: "opacity 0.2s ease-out",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            display: hovered ? "flex" : "none",
-                            alignItems: "center",
-                            flex: 1,
-                            willChange: "opacity",
-                          }}
-                        >
-                          <ListItemText
-                            primary={tab.name}
-                            sx={{ color: "#222", fontWeight: 600, m: 0 }}
-                          />
-                          {hasSubTabs &&
-                            (openDropdown === tab.name ? (
-                              <ArrowDropDownIcon sx={{ ml: 1 }} />
-                            ) : (
-                              <ArrowRightIcon sx={{ ml: 1 }} />
-                            ))}
-                        </Box>
-                      </ListItemButton>
-                    )}
-                  </ListItem>
-                  {/* Dropdown for sub-tabs inside navbar */}
-                  {hasSubTabs && (
-                    <Collapse
-                      in={openDropdown === tab.name && hovered}
-                      timeout="auto"
-                      unmountOnExit
-                    >
-                      <List sx={{ pl: 2, bgcolor: "#c0c0c0" }}>
-                        {tab.subTabs
-                          .filter((sub) => {
-                            if (!sub.requiredRole) return true;
-                            return user?.role.permissions.some(
-                              (permission) =>
-                                permission.permission === sub.requiredRole &&
-                                permission.canView === sub.canView
-                            );
-                          })
-                          .map((sub) => (
-                            <ListItemButton
-                              key={sub.name}
-                              component={Link}
-                              to={sub.path}
-                              sx={{
-                                py: 1,
-                                px: 2,
-                                borderRadius: 1,
-                                color: "#222",
-                                fontSize: "0.875rem",
-                                transition: "background-color 0.15s ease-out",
-                                "&:hover": { bgcolor: "#d0d0d0" },
-                              }}
-                            >
-                              <ListItemIcon
-                                sx={{ minWidth: 0, mr: 1.5, color: "#222" }}
-                              >
-                                <sub.icon fontSize="small" />
-                              </ListItemIcon>
-                              <ListItemText
-                                primary={sub.name}
-                                primaryTypographyProps={{
-                                  fontSize: "0.875rem",
-                                }}
-                              />
-                            </ListItemButton>
-                          ))}
-                      </List>
-                    </Collapse>
-                  )}
-                </Box>
-              );
-            }
-          })}
+          {visibleTabs.map((tab) => (
+            <NavbarItem
+              key={tab.name}
+              tab={tab}
+              user={user}
+              location={location}
+              hovered={true}
+              openDropdown={openDropdown}
+              handleTabClick={handleTabClick}
+            />
+          ))}
         </List>
       </Box>
     </Box>

@@ -27,14 +27,7 @@ export const useAuth = () => {
   const isAuthenticated = authState.sessionValid && !!authState.user;
 
   const isAuthorized = (requiredRole: string) => {
-    return (
-      authState.user &&
-      authState.user.role.permissions.some(
-        (permission) =>
-          permission.name === requiredRole ||
-          permission.permission === requiredRole
-      )
-    );
+    return authState.user && authState.user.role.name === requiredRole;
   };
 
   return {

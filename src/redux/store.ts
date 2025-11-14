@@ -1,12 +1,24 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
 import { authSlice } from "./auth/auth.slice";
-import { employeeSlice } from "./auth/employee.slice";
+import { employeeSlice } from "./employee/employee.slice";
+import { departmentSlice } from "./admin/department.slice";
+import { positionSlice } from "./admin/position.slice";
+import notificationReducer from "./notification/notification.slice";
+import { usersSlice } from "./admin/users.slice";
+import { roleSlice } from "./auth/role.slice";
+import { contractSlice } from "./employee/contract.slice";
 
 export const store = configureStore({
   reducer: {
     auth: authSlice.reducer,
     employee: employeeSlice.reducer,
+    department: departmentSlice.reducer,
+    position: positionSlice.reducer,
+    notification: notificationReducer,
+    user: usersSlice.reducer,
+    role: roleSlice.reducer,
+    contract: contractSlice.reducer,
   },
 });
 
@@ -33,4 +45,5 @@ export type TableFilterState = {
   sortOrder?: "asc" | "desc";
   sortBy?: string;
   orderBy?: string;
+  search?: string;
 };

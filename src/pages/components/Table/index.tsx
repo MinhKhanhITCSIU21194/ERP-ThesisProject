@@ -18,6 +18,7 @@ type TableProps = {
   rowCount?: number;
   paginationMode?: "client" | "server";
   loading?: boolean;
+  getRowId?: (row: any) => string;
 };
 
 export const CustomTable = ({
@@ -31,6 +32,7 @@ export const CustomTable = ({
   rowCount,
   paginationMode = "client",
   loading = false,
+  getRowId,
   ...props
 }: TableProps) => {
   const [selectedRows, setSelectedRows] = React.useState<GridRowSelectionModel>(
@@ -56,12 +58,14 @@ export const CustomTable = ({
     }
   };
 
+  const defaultGetRowId = (row: any) => row.employeeId || row.id;
+
   return (
     <Paper style={{ minHeight: 400 }} sx={sx}>
       <DataGrid
         rows={rows}
         columns={columns}
-        getRowId={(row) => row.employeeId || row.id} // Use employeeId as the unique identifier
+        getRowId={getRowId || defaultGetRowId}
         paginationModel={paginationModel}
         onPaginationModelChange={handlePaginationChange}
         pageSizeOptions={[5, 10, 20, 50, 100]}

@@ -47,12 +47,26 @@ AxiosInstance.interceptors.response.use(
     const originalRequest = error.config;
 
     console.log("❌ Error:", error.response?.status, originalRequest?.url);
+    console.log("   Error message:", error.response?.data?.message);
 
-    // Handle 401/410 Unauthorized - Try to refresh token
+    // Don't attempt token refresh for authentication endpoints (login, register, etc.)
+    const authEndpoints = [
+      "/auth/sign-in",
+      "/auth/check-email",
+      "/auth/send-verification",
+      "/auth/verify-code",
+      "/auth/reset-password",
+    ];
+    const isAuthEndpoint = authEndpoints.some((endpoint) =>
+      originalRequest?.url?.includes(endpoint)
+    );
+
+    // Handle 401/410 Unauthorized - Try to refresh token (but not for auth endpoints)
     if (
       error.response &&
       [401, 410].includes(error.response.status) &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      !isAuthEndpoint // Don't refresh on login/auth failures
     ) {
       originalRequest._retry = true;
 
@@ -60,6 +74,11 @@ AxiosInstance.interceptors.response.use(
         // Always attempt refresh via httpOnly refresh token cookie
         // (Remember Me should only control persistence on login, not automatic refresh)
         console.log("🔄 Attempting token refresh via cookie...");
+        console.log(
+          "   Original request was:",
+          originalRequest.method,
+          originalRequest.url
+        );
 
         // Call refresh endpoint - server reads refresh token from httpOnly cookie
         const response = await axios.post<
@@ -76,17 +95,23 @@ AxiosInstance.interceptors.response.use(
           // Retry the original request - new access token is now in cookie
           return AxiosInstance(originalRequest);
         } else {
-          console.log("❌ Token refresh failed");
+          console.log("❌ Token refresh failed - session expired");
           TokenService.clearSession();
           window.location.href = "/auth/sign-in"; // Redirect to login
           return Promise.reject(response.data.message);
         }
       } catch (refreshError) {
-        console.error("❌ Token refresh error:", refreshError);
+        console.error("❌ Token refresh error - session expired");
         TokenService.clearSession();
         window.location.href = "/auth/sign-in"; // Redirect to login
         return Promise.reject(refreshError);
       }
+    }
+
+    // For auth endpoint failures, don't redirect - just return the error
+    if (isAuthEndpoint) {
+      console.log("⚠️ Auth endpoint failed (expected for invalid credentials)");
+      return Promise.reject(error);
     }
 
     // Show error toast for other errors

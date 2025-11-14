@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { TableFilterState } from "../../redux/store";
-import { Employee } from "../../data/employee/employee";
-import { GET, POST, PUT, DELETE } from "../axios";
+import { TableFilterState } from "../redux/store";
+import { Employee } from "../data/employee/employee";
+import { GET, POST, PUT, DELETE } from "./axios";
 
 // GET - Fetch employee list with pagination
 export const getEmployeeList = createAsyncThunk(

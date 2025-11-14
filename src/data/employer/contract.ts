@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { TableFilterState } from "../../redux/store";
+import { Employee } from "../employee/employee";
 
 export type ContractFormProps = {
   contractNumber?: string;
@@ -26,6 +27,7 @@ export enum ContractStatus {
 export type Contract = {
   contractNumber: string;
   id: string;
+  employee?: Employee;
   employeeFullName: string;
   contractFile?: string;
   contractType: string;

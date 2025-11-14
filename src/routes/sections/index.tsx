@@ -23,11 +23,6 @@ function Router() {
     // Admin only routes
     {
       path: "/admin/*",
-      element: (
-        <ProtectedRoute requiredRole="admin">
-          <AdminLayout />
-        </ProtectedRoute>
-      ),
       children: adminRoutes,
     },
     // Root redirect

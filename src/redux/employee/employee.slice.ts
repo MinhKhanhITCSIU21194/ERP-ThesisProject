@@ -1,11 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../store";
 import { Employee } from "../../data/employee/employee";
-import { getEmployeeList } from "../../services/employee";
+import { getEmployeeList } from "../../services/employee.service";
 
 export type EmployeeState = {
   employees: Employee[];
   totalCount?: number;
+  selectedEmployee?: Employee;
   employee?: Employee;
   success: boolean;
   isLoading: boolean;
@@ -22,7 +23,14 @@ export const initEmployeeState: EmployeeState = {
 export const employeeSlice = createSlice({
   name: "employee",
   initialState: initEmployeeState,
-  reducers: {},
+  reducers: {
+    setSelectedEmployee: (state, action) => {
+      state.selectedEmployee = action.payload;
+    },
+    clearSelectedEmployee: (state) => {
+      state.selectedEmployee = undefined;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getEmployeeList.pending, (state) => {

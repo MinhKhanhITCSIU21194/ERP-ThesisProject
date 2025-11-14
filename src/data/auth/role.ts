@@ -1,10 +1,13 @@
 export type Role = {
   id: string;
+  roleId?: number;
   name: string;
   description: string;
   createdBy: string;
   createdAt: string;
   permissions: Permission[];
+  users?: any[];
+  userCount?: number;
 };
 
 export type RoleRequest = {
@@ -12,7 +15,8 @@ export type RoleRequest = {
   name: string;
   description: string;
   createdBy?: string;
-  permissions: Permission[];
+  permissions?: Permission[];
+  permissionIds?: number[];
 };
 
 export type RoleResponse = {

@@ -28,7 +28,7 @@ export type EmployeeDepartment = {
   role?: string;
   responsibilities?: string;
   isActive: boolean;
-  department?: Department; // Populated department data
+  department: Department; // Populated department data
   createdAt: string;
   updatedAt: string;
 };
@@ -38,25 +38,39 @@ export type Employee = {
   id: string;
   employeeId?: string; // Backend uses employeeId as primary key
   email: string;
+  gender?: string;
+  phoneNumber?: string;
+  hireDate?: string;
   firstName?: string;
   lastName?: string;
-  fullName: string;
-  photo: string;
-  departments: EmployeeDepartment[]; // Changed: Now array of EmployeeDepartment with full department data
-  department?: string; // Legacy field - kept for backwards compatibility
-  position?: string; // Legacy field - kept for backwards compatibility
+  fullName?: string;
+  photo?: string;
+  departments?: EmployeeDepartment[]; // Changed: Now array of EmployeeDepartment with full department data
   positionEntity?: Position; // New: Full position object
   positionId: string;
-  contracts: Contract[];
-  bankAccount: bankAccount;
+  contracts?: Contract[];
+  bankAccount?: bankAccount;
+  currentAddress?: string;
+  contractType?: string;
+  workingType?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelationship?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
+  bankName?: string;
+  bankBranch?: string;
+  dateOfBirth?: string;
   status: EmployeeStatus;
+  taxId?: string;
   employmentStatus?: string;
+  socialSecurityNumber?: string;
   createdAt: string;
   resetToken: string;
   roles: Role[];
   departmentIds: string[];
-  skills: EmployeeSkill[];
-  educations: EmployeeEducations[];
+  skills?: EmployeeSkill[];
+  educations?: EmployeeEducations[];
 };
 
 export type EmployeeResponse = {
