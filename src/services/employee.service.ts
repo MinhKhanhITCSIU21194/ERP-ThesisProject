@@ -2,10 +2,10 @@ import { AppDataSource } from "../config/typeorm";
 import {
   Employee,
   EmploymentStatus,
-  ContractType,
   MaritalStatus,
   Gender,
 } from "../models/entities/employee";
+import { ContractType } from "../models/entities/contract";
 import { Repository, FindOptionsWhere, ILike, In } from "typeorm";
 
 export interface CreateEmployeeDTO {
@@ -46,16 +46,13 @@ export interface CreateEmployeeDTO {
   jobTitle?: string;
   workLocation?: string;
   reportingManagerId?: string;
-
-  // Contract Information
-  contractType: ContractType;
-  contractStartDate?: Date;
-  contractEndDate?: Date;
-  contractDetails?: string;
   weeklyWorkHours?: number;
   salary?: number;
   salaryCurrency?: string;
   salaryFrequency?: string;
+
+  // Note: Contract information moved to separate Contract entity
+  // Use contract service to create/manage employee contracts
 
   // Bank Information
   bankName?: string;
@@ -86,7 +83,7 @@ export interface UpdateEmployeeDTO extends Partial<CreateEmployeeDTO> {
 export interface EmployeeFilterDTO {
   search?: string; // Search by name, email, or employee code
   employmentStatus?: EmploymentStatus | EmploymentStatus[];
-  contractType?: ContractType | ContractType[];
+  // Note: contractType filter removed - use contract service endpoints to filter by contract type
   department?: string;
   position?: string;
   hireDateFrom?: Date;
@@ -149,13 +146,8 @@ export class EmployeeService {
         }
       }
 
-      if (filters.contractType) {
-        if (Array.isArray(filters.contractType)) {
-          where.contractType = In(filters.contractType);
-        } else {
-          where.contractType = filters.contractType;
-        }
-      }
+      // Note: contractType filtering removed as contracts are now a separate entity
+      // Use contract service endpoints to filter by contract type
 
       if (filters.department) {
         where.department = filters.department;
@@ -176,7 +168,10 @@ export class EmployeeService {
       .leftJoinAndSelect("employee.user", "user")
       .leftJoinAndSelect("employee.positionEntity", "position")
       .leftJoinAndSelect("employee.departments", "employeeDepartments")
-      .leftJoinAndSelect("employeeDepartments.department", "department");
+      .leftJoinAndSelect("employeeDepartments.department", "department")
+      .leftJoinAndSelect("employee.contracts", "contracts")
+      .addOrderBy("contracts.status", "DESC") // Active contracts first (ACTIVE > INACTIVE/TERMINATED alphabetically)
+      .addOrderBy("contracts.startDate", "DESC"); // Then by most recent start date
 
     // Apply search filter
     if (filters?.search) {
@@ -199,28 +194,47 @@ export class EmployeeService {
       }
     }
 
-    if (filters?.contractType) {
-      if (Array.isArray(filters.contractType)) {
-        queryBuilder.andWhere("employee.contractType IN (:...types)", {
-          types: filters.contractType,
+    // Note: contractType filtering removed as contracts are now a separate entity
+    // Use contract service endpoints to filter by contract type
+
+    if (filters?.department) {
+      // Check if it's a UUID (department ID) or a string (legacy department name)
+      const isUUID =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          filters.department
+        );
+
+      if (isUUID) {
+        // Filter by department ID through the employeeDepartments relationship
+        queryBuilder.andWhere("department.id = :departmentId", {
+          departmentId: filters.department,
         });
       } else {
-        queryBuilder.andWhere("employee.contractType = :type", {
-          type: filters.contractType,
+        // Legacy: Filter by department string field
+        queryBuilder.andWhere("employee.department = :department", {
+          department: filters.department,
         });
       }
     }
 
-    if (filters?.department) {
-      queryBuilder.andWhere("employee.department = :department", {
-        department: filters.department,
-      });
-    }
-
     if (filters?.position) {
-      queryBuilder.andWhere("employee.position = :position", {
-        position: filters.position,
-      });
+      // Check if it's a UUID (position ID) or a string (legacy position name)
+      const isUUID =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          filters.position
+        );
+
+      if (isUUID) {
+        // Filter by position ID (positionEntity relationship)
+        queryBuilder.andWhere("employee.positionId = :positionId", {
+          positionId: filters.position,
+        });
+      } else {
+        // Legacy: Filter by position string field
+        queryBuilder.andWhere("employee.position = :position", {
+          position: filters.position,
+        });
+      }
     }
 
     if (filters?.reportingManagerId) {
@@ -285,60 +299,76 @@ export class EmployeeService {
    * Get employee by ID
    */
   async getEmployeeById(employeeId: string): Promise<Employee | null> {
-    return await this.employeeRepository.findOne({
-      where: { employeeId },
-      relations: [
-        "user",
-        "positionEntity",
-        "departments",
-        "departments.department",
-      ],
-    });
+    const employee = await this.employeeRepository
+      .createQueryBuilder("employee")
+      .leftJoinAndSelect("employee.user", "user")
+      .leftJoinAndSelect("employee.positionEntity", "positionEntity")
+      .leftJoinAndSelect("employee.departments", "departments")
+      .leftJoinAndSelect("departments.department", "department")
+      .leftJoinAndSelect("employee.contracts", "contracts")
+      .addOrderBy("contracts.status", "DESC") // Active contracts first
+      .addOrderBy("contracts.startDate", "DESC")
+      .where("employee.employeeId = :employeeId", { employeeId })
+      .getOne();
+
+    return employee;
   }
 
   /**
    * Get employee by employee code
    */
   async getEmployeeByCode(employeeCode: string): Promise<Employee | null> {
-    return await this.employeeRepository.findOne({
-      where: { employeeCode },
-      relations: [
-        "user",
-        "positionEntity",
-        "departments",
-        "departments.department",
-      ],
-    });
+    const employee = await this.employeeRepository
+      .createQueryBuilder("employee")
+      .leftJoinAndSelect("employee.user", "user")
+      .leftJoinAndSelect("employee.positionEntity", "positionEntity")
+      .leftJoinAndSelect("employee.departments", "departments")
+      .leftJoinAndSelect("departments.department", "department")
+      .leftJoinAndSelect("employee.contracts", "contracts")
+      .addOrderBy("contracts.status", "DESC") // Active contracts first
+      .addOrderBy("contracts.startDate", "DESC")
+      .where("employee.employeeCode = :employeeCode", { employeeCode })
+      .getOne();
+
+    return employee;
   }
 
   /**
    * Get employee by user ID
    */
   async getEmployeeByUserId(userId: string): Promise<Employee | null> {
-    return await this.employeeRepository.findOne({
-      where: { userId },
-      relations: [
-        "user",
-        "positionEntity",
-        "departments",
-        "departments.department",
-      ],
-    });
+    const employee = await this.employeeRepository
+      .createQueryBuilder("employee")
+      .leftJoinAndSelect("employee.user", "user")
+      .leftJoinAndSelect("employee.positionEntity", "positionEntity")
+      .leftJoinAndSelect("employee.departments", "departments")
+      .leftJoinAndSelect("departments.department", "department")
+      .leftJoinAndSelect("employee.contracts", "contracts")
+      .addOrderBy("contracts.status", "DESC") // Active contracts first
+      .addOrderBy("contracts.startDate", "DESC")
+      .where("employee.userId = :userId", { userId })
+      .getOne();
+
+    return employee;
   }
 
   /**
    * Get employee by email
    */
   async getEmployeeByEmail(email: string): Promise<Employee | null> {
-    return await this.employeeRepository.findOne({
-      where: { email },
-      relations: [
-        "user",
-        "positionEntity",
-        "departments",
-        "departments.department",
-      ],
-    });
+    const employee = await this.employeeRepository
+      .createQueryBuilder("employee")
+      .leftJoinAndSelect("employee.user", "user")
+      .leftJoinAndSelect("employee.positionEntity", "positionEntity")
+      .leftJoinAndSelect("employee.departments", "departments")
+      .leftJoinAndSelect("departments.department", "department")
+      .leftJoinAndSelect("employee.contracts", "contracts")
+      .addOrderBy("contracts.status", "DESC") // Active contracts first
+      .addOrderBy("contracts.startDate", "DESC")
+      .where("employee.email = :email", { email })
+      .getOne();
+
+    return employee;
   }
 
   /**
@@ -442,15 +472,19 @@ export class EmployeeService {
 
     return await this.employeeRepository
       .createQueryBuilder("employee")
-      .where("employee.contractEndDate IS NOT NULL")
-      .andWhere("employee.contractEndDate <= :thresholdDate", {
+      .leftJoinAndSelect("employee.contracts", "contracts")
+      .where("contracts.endDate IS NOT NULL")
+      .andWhere("contracts.endDate <= :thresholdDate", {
         thresholdDate,
       })
-      .andWhere("employee.contractEndDate > :today", { today })
+      .andWhere("contracts.endDate > :today", { today })
+      .andWhere("contracts.status = :contractStatus", {
+        contractStatus: "ACTIVE",
+      })
       .andWhere("employee.employmentStatus = :status", {
         status: EmploymentStatus.ACTIVE,
       })
-      .orderBy("employee.contractEndDate", "ASC")
+      .orderBy("contracts.endDate", "ASC")
       .getMany();
   }
 

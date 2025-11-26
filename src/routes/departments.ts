@@ -11,7 +11,6 @@ router.use(authenticateToken);
 // GET routes
 router.get(
   "/",
-  requirePermission("DEPARTMENT_MANAGEMENT", "canView"),
   departmentController.getAllDepartments.bind(departmentController)
 );
 

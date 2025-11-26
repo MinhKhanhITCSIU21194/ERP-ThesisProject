@@ -20,8 +20,11 @@ export class PositionService {
   }) {
     const where: FindOptionsWhere<Position> = {};
 
+    // Default to only active positions unless explicitly specified
     if (filters?.isActive !== undefined) {
       where.isActive = filters.isActive;
+    } else {
+      where.isActive = true;
     }
 
     if (filters?.level) {

@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { DepartmentService } from "../services/department.service";
-import { DepartmentType } from "../models/entities/department";
 
 const departmentService = new DepartmentService();
 
@@ -11,19 +10,12 @@ export class DepartmentController {
    */
   async getAllDepartments(req: Request, res: Response) {
     try {
-      const { isActive, type, search, parentId } = req.query;
+      const { isActive, search, parentId } = req.query;
 
       const filters: any = {};
 
       if (isActive !== undefined) {
         filters.isActive = isActive === "true";
-      }
-
-      if (
-        type &&
-        Object.values(DepartmentType).includes(type as DepartmentType)
-      ) {
-        filters.type = type as DepartmentType;
       }
 
       if (search) {

@@ -24,42 +24,22 @@ export const authenticateToken = async (
     const { CookieService } = await import("../services/cookie.service");
     const cookieService = new CookieService();
 
-    // Debug: Log all cookies received
-    console.log("🍪 Cookies received:", req.cookies);
-    console.log("🔍 Request URL:", req.url);
-
-    // Primary: Get token from httpOnly cookie (most secure)
     let token: string | null = cookieService.getAccessTokenFromCookies(req);
-    console.log(
-      "🔑 Access token from cookie:",
-      token ? "✅ Found" : "❌ Not found"
-    );
 
     // Fallback: Get token from Authorization header (for backwards compatibility)
     if (!token) {
       const authHeader = req.headers["authorization"];
       token = authHeader ? authHeader.split(" ")[1] || null : null; // Bearer TOKEN
-      console.log(
-        "🔑 Access token from header:",
-        token ? "✅ Found" : "❌ Not found"
-      );
     }
 
     // If no access token, try to refresh automatically using refresh token
     if (!token) {
       const refreshToken = cookieService.getRefreshTokenFromCookies(req);
       const sessionId = cookieService.getSessionIdFromCookies(req);
-      console.log(
-        "🔄 Attempting auto-refresh - Refresh token:",
-        refreshToken ? "✅ Found" : "❌ Not found"
-      );
-      console.log(
-        "🔄 Attempting auto-refresh - Session ID:",
-        sessionId ? "✅ Found" : "❌ Not found"
-      );
 
       if (refreshToken && sessionId) {
         // Attempt to refresh the access token automatically
+        console.log("🔄 Calling authService.refreshAccessToken...");
         const { AuthService } = await import("../services/auth.service");
         const authService = new AuthService();
 
@@ -72,7 +52,11 @@ export const authenticateToken = async (
           // Set new access token cookie
           cookieService.setAccessTokenCookie(res, refreshResult.accessToken);
           cookieService.setSessionCookie(res, sessionId);
+        } else {
+          console.log("Auto-refresh failed:", refreshResult.error);
         }
+      } else {
+        console.log("Cannot auto-refresh: Missing refresh token or session ID");
       }
     }
 

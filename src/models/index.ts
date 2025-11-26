@@ -9,14 +9,35 @@ export { Notification, NotificationType } from "./entities/notification";
 export {
   Employee,
   EmploymentStatus,
-  ContractType,
   MaritalStatus,
   Gender,
 } from "./entities/employee";
 
-export { Department, DepartmentType } from "./entities/department";
+export { Department } from "./entities/department";
 export { Position, PositionLevel } from "./entities/position";
 export { EmployeeDepartment } from "./entities/employee-department";
+export {
+  Contract,
+  ContractStatus,
+  ContractType,
+  WorkingType,
+} from "./entities/contract";
+
+// Project Management Models
+export { Project, ProjectStatus, ProjectPriority } from "./entities/project";
+export { ProjectMember, ProjectMemberRole } from "./entities/project-member";
+export { Sprint, SprintStatus } from "./entities/sprint";
+export { Task, TaskStatus, TaskPriority, TaskType } from "./entities/task";
+export { SprintMember, SprintMemberRole } from "./entities/sprint-member";
+export { TaskComment } from "./entities/task-comment";
+export { TaskAttachment, AttachmentType } from "./entities/task-attachment";
+
+// Leave Management Models
+export {
+  LeaveRequest,
+  LeaveRequestStatus,
+  LeaveType,
+} from "./entities/leave-request";
 
 // Re-export all entities for TypeORM
 import { User } from "./entities/user";
@@ -32,6 +53,15 @@ import { Employee } from "./entities/employee";
 import { Department } from "./entities/department";
 import { Position } from "./entities/position";
 import { EmployeeDepartment } from "./entities/employee-department";
+import { Contract } from "./entities/contract";
+import { Project } from "./entities/project";
+import { ProjectMember } from "./entities/project-member";
+import { Sprint } from "./entities/sprint";
+import { Task } from "./entities/task";
+import { SprintMember } from "./entities/sprint-member";
+import { TaskComment } from "./entities/task-comment";
+import { TaskAttachment } from "./entities/task-attachment";
+import { LeaveRequest } from "./entities/leave-request";
 
 export const entities = [
   User,
@@ -44,4 +74,13 @@ export const entities = [
   Department,
   Position,
   EmployeeDepartment,
+  Contract,
+  Project,
+  ProjectMember,
+  Sprint,
+  SprintMember,
+  Task,
+  TaskComment,
+  TaskAttachment,
+  LeaveRequest,
 ];

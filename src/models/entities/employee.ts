@@ -13,6 +13,7 @@ import {
 import { User } from "./user";
 import { Position } from "./position";
 import { EmployeeDepartment } from "./employee-department";
+import { Contract } from "./contract";
 
 export enum EmploymentStatus {
   ACTIVE = "ACTIVE",
@@ -21,15 +22,6 @@ export enum EmploymentStatus {
   TERMINATED = "TERMINATED",
   RESIGNED = "RESIGNED",
   RETIRED = "RETIRED",
-}
-
-export enum ContractType {
-  FULL_TIME = "FULL_TIME",
-  PART_TIME = "PART_TIME",
-  CONTRACT = "CONTRACT",
-  INTERNSHIP = "INTERNSHIP",
-  TEMPORARY = "TEMPORARY",
-  FREELANCE = "FREELANCE",
 }
 
 export enum MaritalStatus {
@@ -168,6 +160,10 @@ export class Employee {
   )
   departments?: EmployeeDepartment[];
 
+  // One-to-Many relationship with Contracts
+  @OneToMany(() => Contract, (contract) => contract.employee)
+  contracts?: Contract[];
+
   @Column({ type: "uuid", nullable: true })
   @Index()
   positionId?: string;
@@ -193,23 +189,7 @@ export class Employee {
   @Index()
   reportingManagerId?: string; // Self-referencing to another employee
 
-  // Contract Information
-  @Column({
-    type: "enum",
-    enum: ContractType,
-    default: ContractType.FULL_TIME,
-  })
-  contractType!: ContractType;
-
-  @Column({ type: "date", nullable: true })
-  contractStartDate?: Date;
-
-  @Column({ type: "date", nullable: true })
-  contractEndDate?: Date;
-
-  @Column({ type: "text", nullable: true })
-  contractDetails?: string;
-
+  // Work Schedule Information
   @Column({ type: "int", default: 40 })
   weeklyWorkHours!: number;
 
@@ -313,16 +293,5 @@ export class Employee {
   // Check if employee is active
   isActive(): boolean {
     return this.employmentStatus === EmploymentStatus.ACTIVE;
-  }
-
-  // Check if contract is expiring soon (within 30 days)
-  isContractExpiringSoon(): boolean {
-    if (!this.contractEndDate) return false;
-    const today = new Date();
-    const endDate = new Date(this.contractEndDate);
-    const daysUntilExpiry = Math.ceil(
-      (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
   }
 }

@@ -180,11 +180,9 @@ export class AuthService {
       if (res) {
         const { CookieService } = await import("./cookie.service");
         const cookieService = new CookieService();
-        console.log("🍪 Setting auth cookies on sign-in for user:", user.email);
         cookieService.setAccessTokenCookie(res, accessToken);
         cookieService.setRefreshTokenCookie(res, refreshToken);
         cookieService.setSessionCookie(res, sessionId);
-        console.log("✅ Auth cookies set successfully");
       } else {
         console.log("⚠️ No response object provided - cookies NOT set");
       }
@@ -202,12 +200,21 @@ export class AuthService {
         },
       });
 
+      // Get employee UUID if user has an employee record
+      const { Employee } = await import("../models/entities/employee");
+      const employeeRepository = AppDataSource.getRepository(Employee);
+      const employee = await employeeRepository.findOne({
+        where: { userId: user.userId },
+        select: ["employeeId"],
+      });
+
       // Prepare user data for response (excluding sensitive fields)
       const userData = {
         userId: user.userId,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        employeeId: employee?.employeeId, // Employee UUID, not employee code
         role: formatRole(user.role),
         isEmailVerified: user.isEmailVerified,
         lastLogin: user.lastLogin,
@@ -466,12 +473,21 @@ export class AuthService {
         },
       });
 
+      // Get employee UUID if user has an employee record
+      const { Employee } = await import("../models/entities/employee");
+      const employeeRepository = AppDataSource.getRepository(Employee);
+      const employee = await employeeRepository.findOne({
+        where: { userId: savedUser.userId },
+        select: ["employeeId"],
+      });
+
       // Prepare user data for response
       const userData = {
         userId: savedUser.userId,
         firstName: savedUser.firstName,
         lastName: savedUser.lastName,
         email: savedUser.email,
+        employeeId: employee?.employeeId,
         role: formatRole(savedUser.role),
         isEmailVerified: savedUser.isEmailVerified,
         lastLogin: savedUser.lastLogin,
@@ -645,6 +661,20 @@ export class AuthService {
       session.lastActivity = new Date();
       await this.sessionRepository.save(session);
 
+      // Get employee UUID if user has an employee record
+      const { Employee } = await import("../models/entities/employee");
+      const employeeRepository = AppDataSource.getRepository(Employee);
+      const employee = await employeeRepository.findOne({
+        where: { userId: session.user.userId },
+        select: ["employeeId"],
+      });
+
+      // Add employee UUID to user object
+      const userWithEmployee = {
+        ...session.user,
+        employeeId: employee?.employeeId,
+      };
+
       // Generate new access token
       const accessToken = this.generateToken(session.user);
       const expiresAt = this.getTokenExpiryTime();
@@ -653,7 +683,7 @@ export class AuthService {
         success: true,
         accessToken,
         expiresAt,
-        user: session.user,
+        user: userWithEmployee,
       };
     } catch (error) {
       console.error("Refresh token error:", error);

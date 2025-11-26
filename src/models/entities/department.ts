@@ -11,25 +11,6 @@ import {
 } from "typeorm";
 import { EmployeeDepartment } from "./employee-department";
 
-export enum DepartmentType {
-  ENGINEERING = "ENGINEERING",
-  PRODUCT = "PRODUCT",
-  DESIGN = "DESIGN",
-  MARKETING = "MARKETING",
-  SALES = "SALES",
-  HUMAN_RESOURCES = "HUMAN_RESOURCES",
-  FINANCE = "FINANCE",
-  OPERATIONS = "OPERATIONS",
-  CUSTOMER_SUPPORT = "CUSTOMER_SUPPORT",
-  LEGAL = "LEGAL",
-  SECURITY = "SECURITY",
-  DATA_SCIENCE = "DATA_SCIENCE",
-  QUALITY_ASSURANCE = "QUALITY_ASSURANCE",
-  BUSINESS = "BUSINESS",
-  ADMINISTRATION = "ADMINISTRATION",
-  OTHER = "OTHER",
-}
-
 @Entity("departments")
 export class Department {
   @Index()
@@ -64,9 +45,6 @@ export class Department {
     (employeeDepartment) => employeeDepartment.department
   )
   employees!: EmployeeDepartment[];
-
-  @Column({ type: "enum", enum: DepartmentType, default: DepartmentType.OTHER })
-  type!: DepartmentType;
 
   @Column({ type: "boolean", default: true })
   isActive!: boolean;

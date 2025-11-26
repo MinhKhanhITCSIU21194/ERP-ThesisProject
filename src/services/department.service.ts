@@ -1,5 +1,5 @@
 import { AppDataSource } from "../config/typeorm";
-import { Department, DepartmentType } from "../models/entities/department";
+import { Department } from "../models/entities/department";
 import { EmployeeDepartment } from "../models/entities/employee-department";
 import { FindOptionsWhere, ILike, IsNull } from "typeorm";
 
@@ -13,18 +13,16 @@ export class DepartmentService {
    */
   async getAllDepartments(filters?: {
     isActive?: boolean;
-    type?: DepartmentType;
     search?: string;
     parentId?: string | null;
   }) {
     const where: FindOptionsWhere<Department> = {};
 
+    // Default to only active departments unless explicitly specified
     if (filters?.isActive !== undefined) {
       where.isActive = filters.isActive;
-    }
-
-    if (filters?.type) {
-      where.type = filters.type;
+    } else {
+      where.isActive = true;
     }
 
     if (filters?.search) {
@@ -116,7 +114,6 @@ export class DepartmentService {
     name: string;
     description?: string;
     parentId?: string;
-    type: DepartmentType;
     code?: string;
     location?: string;
     managerId?: string;
@@ -160,7 +157,6 @@ export class DepartmentService {
       name?: string;
       description?: string;
       parentId?: string;
-      type?: DepartmentType;
       code?: string;
       location?: string;
       managerId?: string;

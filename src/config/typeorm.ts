@@ -10,6 +10,15 @@ import { Employee } from "../models/entities/employee";
 import { Department } from "../models/entities/department";
 import { Position } from "../models/entities/position";
 import { EmployeeDepartment } from "../models/entities/employee-department";
+import { Contract } from "../models/entities/contract";
+import { LeaveRequest } from "../models/entities/leave-request";
+import { Project } from "../models/entities/project";
+import { Sprint } from "../models/entities/sprint";
+import { Task } from "../models/entities/task";
+import { SprintMember } from "../models/entities/sprint-member";
+import { TaskAttachment } from "../models/entities/task-attachment";
+import { TaskComment } from "../models/entities/task-comment";
+import { ProjectMember } from "../models/entities/project-member";
 
 dotenv.config();
 
@@ -26,13 +35,22 @@ export const AppDataSource = new DataSource({
     User,
     Role,
     Permission,
+    SprintMember,
+    ProjectMember,
+    TaskAttachment,
+    TaskComment,
     Session,
+    Sprint,
+    Task,
     Notification,
     EmailVerification,
+    Project,
     Employee,
     Department,
     Position,
     EmployeeDepartment,
+    Contract,
+    LeaveRequest,
   ],
   migrations: ["src/migrations/*.ts"],
   subscribers: ["src/subscribers/*.ts"],

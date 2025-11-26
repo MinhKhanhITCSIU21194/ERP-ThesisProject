@@ -5,7 +5,7 @@ import {
   PaginationParams,
   EmployeeFilterDTO,
 } from "../services/employee.service";
-import { EmploymentStatus, ContractType } from "../models/entities/employee";
+import { EmploymentStatus } from "../models/entities/employee";
 
 export class EmployeeController {
   private employeeService: EmployeeService;
@@ -44,13 +44,7 @@ export class EmployeeController {
             : (statuses[0] as EmploymentStatus);
       }
 
-      if (req.query.contractType) {
-        const types = (req.query.contractType as string).split(",");
-        filters.contractType =
-          types.length > 1
-            ? (types as ContractType[])
-            : (types[0] as ContractType);
-      }
+      // Note: contractType filter removed - use /api/contracts endpoints to filter by contract type
 
       if (req.query.department) {
         filters.department = req.query.department as string;
