@@ -126,34 +126,34 @@ AxiosInstance.interceptors.response.use(
   }
 );
 
-export const GET = (
+export const GET = <T = any>(
   url: string,
   config?: AxiosRequestConfig<any> | undefined
 ) => {
-  return AxiosInstance.get(url, config);
+  return AxiosInstance.get<T>(url, config);
 };
 
-export const POST = (
+export const POST = <T = any>(
   url: string,
   body: any,
   config?: AxiosRequestConfig<any> | undefined
 ) => {
-  return AxiosInstance.post(url, body, config);
+  return AxiosInstance.post<T>(url, body, config);
 };
 
-export const PATCH = (url: string, body: any) => {
-  return AxiosInstance.patch(url, body);
+export const PATCH = <T = any>(url: string, body: any) => {
+  return AxiosInstance.patch<T>(url, body);
 };
 
-export const PUT = (url: string, body: any) => {
-  return AxiosInstance.put(url, body);
+export const PUT = <T = any>(url: string, body: any) => {
+  return AxiosInstance.put<T>(url, body);
 };
 
-export const DELETE = (
+export const DELETE = <T = any>(
   url: string,
   config?: AxiosRequestConfig<any> | undefined
 ) => {
-  return AxiosInstance.delete(url, config);
+  return AxiosInstance.delete<T>(url, config);
 };
 
 export const DOWNLOAD = (

@@ -96,22 +96,6 @@ export const FilterSearchField: React.FC<FilterSearchFieldProps> = ({
           ),
         }}
       />
-
-      {/* Department Filter */}
-      {onDepartmentChange && departments.length > 0 && (
-        <Autocomplete
-          size="small"
-          options={departments}
-          getOptionLabel={(option) => option.name}
-          value={selectedDepartment}
-          onChange={handleDepartmentChange}
-          sx={{ minWidth: 200 }}
-          renderInput={(params) => (
-            <TextField {...params} placeholder="Filter by Department" />
-          )}
-        />
-      )}
-
       {/* Position Filter */}
       {onPositionChange && positions.length > 0 && (
         <Autocomplete
@@ -123,6 +107,20 @@ export const FilterSearchField: React.FC<FilterSearchFieldProps> = ({
           sx={{ minWidth: 200 }}
           renderInput={(params) => (
             <TextField {...params} placeholder="Filter by Position" />
+          )}
+        />
+      )}
+      {/* Department Filter */}
+      {onDepartmentChange && departments.length > 0 && (
+        <Autocomplete
+          size="small"
+          options={departments}
+          getOptionLabel={(option) => option.name}
+          value={selectedDepartment}
+          onChange={handleDepartmentChange}
+          sx={{ minWidth: 200 }}
+          renderInput={(params) => (
+            <TextField {...params} placeholder="Filter by Department" />
           )}
         />
       )}

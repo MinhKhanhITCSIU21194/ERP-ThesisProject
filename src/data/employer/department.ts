@@ -1,12 +1,5 @@
 import { Employee } from "../employee/employee";
 
-export enum DepartmentType {
-  Operation = "Operation",
-  Delivery = "Delivery",
-}
-
-export const departmentTypes = Object.values(DepartmentType);
-
 export type Department = {
   isChild: boolean;
   id: string;
@@ -16,7 +9,6 @@ export type Department = {
   parentId: string;
   childrenDepartment: Department[];
   employeeQuantity: number;
-  type: string;
 };
 
 export type DepartmentResponse = {
@@ -37,6 +29,5 @@ export type DepartmentRequest = {
   managerId?: string;
   orderNumber: number;
   parentId: any;
-  type: string;
   childrenDepartment: Department[];
 };

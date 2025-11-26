@@ -1,10 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../store";
-import { Employee } from "../../data/employee/employee";
+import { Employee, LeaveRecord } from "../../data/employee/employee";
 import { getEmployeeList } from "../../services/employee.service";
 
 export type EmployeeState = {
   employees: Employee[];
+  leaveRecords?: LeaveRecord[];
   totalCount?: number;
   selectedEmployee?: Employee;
   employee?: Employee;

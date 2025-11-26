@@ -3,14 +3,17 @@ import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./components/navbar";
 import { Box, Typography } from "@mui/material";
 import Header from "./components/header";
+import { Breadcrumbs } from "../components/breadcrumbs";
 
 // Map routes to their titles
 const getPageTitle = (pathname: string): string => {
   const routes: Record<string, string> = {
     "/dashboard": "Dashboard",
+    "/dashboard/profile": "My Profile",
+    "/dashboard/request-leave": "Request Leave",
     "/dashboard/employee/list": "Employees List",
     "/dashboard/employee/contract": "Contract Management",
-    "/dashboard/employee/leave": "Leave Requests",
+    "/dashboard/employee/leave-requests": "Leave Requests",
     "/dashboard/projects": "Projects",
     "/admin/settings/department": "Department Management",
     "/admin/settings/position": "Position Management",
@@ -52,13 +55,9 @@ export const DashboardLayout = () => {
             bgcolor: "#f5f5f5",
           }}
         >
+          {/* Breadcrumbs navigation */}
+          <Breadcrumbs />
           {/* Dynamic page title based on current route */}
-          <Typography
-            variant="h5"
-            sx={{ p: 3, pb: 0, fontWeight: 600, color: "#222" }}
-          >
-            {pageTitle}
-          </Typography>
           <Outlet /> {/* This renders the current route's component */}
         </Box>
       </Box>

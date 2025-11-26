@@ -162,3 +162,12 @@ export type TimeKeeper = {
 export type TimeKeeperResponse = {
   data: TimeKeeper[];
 };
+
+export type LeaveRecord = {
+  id: string;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: string;
+};

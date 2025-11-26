@@ -24,8 +24,14 @@ export const paths = {
     leaveRequest: "/employees/leave-requests",
   },
   project: {
-    list: "/projects",
-    kanban: "/projects/kanban",
+    list: "/dashboard/projects/list",
+    create: "/dashboard/projects/create",
+    task: "/dashboard/projects/tasks",
+    detail: (id: string) => `/dashboard/projects/${id}`,
+    taskDetail: (id: string) => `/dashboard/projects/tasks/${id}`,
+    sprint: "/dashboard/projects/sprints",
+    board: "/dashboard/projects/sprints/board",
+    kanban: "/dashboard/projects/kanban",
   },
   leave: {
     submit: "/submit-leave",

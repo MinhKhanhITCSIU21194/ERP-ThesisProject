@@ -1,6 +1,7 @@
 import React from "react";
 import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { Breadcrumbs } from "../components/breadcrumbs";
 
 export const AdminLayout = () => {
   const { user, logout } = useAuth();
@@ -16,6 +17,7 @@ export const AdminLayout = () => {
       </nav>
 
       <main>
+        <Breadcrumbs />
         <h1>Admin Panel - {user?.fullName}</h1>
         <Outlet />
       </main>

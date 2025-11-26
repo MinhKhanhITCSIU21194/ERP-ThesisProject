@@ -11,7 +11,12 @@ import {
 import EditDocumentIcon from "@mui/icons-material/EditDocument";
 import { GridRowSelectionModel } from "@mui/x-data-grid";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
-import { getEmployeeList } from "../../../../../services/employee.service";
+import {
+  getEmployeeList,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+} from "../../../../../services/employee.service";
 import { selectEmployee } from "../../../../../redux/employee/employee.slice";
 import { Employee } from "../../../../../data/employee/employee";
 import EditIcon from "@mui/icons-material/Edit";
@@ -26,8 +31,9 @@ import { getDepartmentList } from "../../../../../services/department.service";
 import { getPositionList } from "../../../../../services/position.service";
 import { selectDepartment } from "../../../../../redux/admin/department.slice";
 import { selectPosition } from "../../../../../redux/admin/position.slice";
-import { FilterSearchField } from "../../../../components/FilterSearchField";
+import { FilterSearchField } from "./employee/components/FilterSearchField";
 import { useRouter } from "../../../../../routes/hooks/useRouter";
+import ConfirmationDialog from "../../../../components/ConfirmationWindow";
 
 function EmployeeListView() {
   const router = useRouter();
@@ -60,6 +66,19 @@ function EmployeeListView() {
       type: "include",
       ids: new Set(),
     });
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const handleSearchChange = (search: string) => {
     setSearchTerm(search);
@@ -141,19 +160,118 @@ function EmployeeListView() {
     setSelectedEmployee(null);
   };
 
-  const handleSaveEmployee = (employee: Employee) => {
-    console.log("Save employee:", employee);
-    // Add your save logic here
-    handleCloseModal();
+  const handleSaveEmployee = async (employee: any) => {
+    try {
+      if (employee.employeeId) {
+        // Update existing employee
+        await dispatch(
+          updateEmployee({
+            id: parseInt(employee.employeeId),
+            data: employee,
+          })
+        ).unwrap();
+        alert("Employee updated successfully");
+      } else {
+        // Create new employee
+        await dispatch(createEmployee(employee)).unwrap();
+        alert("Employee created successfully");
+      }
+      handleCloseModal();
+      const params: any = {
+        pageIndex: paginationModel.page,
+        pageSize: paginationModel.pageSize,
+      };
+      if (searchTerm) params.search = searchTerm;
+      if (departmentFilter) params.department = departmentFilter;
+      if (positionFilter) params.position = positionFilter;
+      dispatch(getEmployeeList(params));
+    } catch (error: any) {
+      alert(`Failed to save employee: ${error}`);
+    }
+  };
+
+  const handleDelete = (employee: Employee) => {
+    if (!employee.employeeId) {
+      alert("Invalid employee ID");
+      return;
+    }
+
+    setConfirmDialog({
+      open: true,
+      title: "Delete Employee",
+      message: `Are you sure you want to delete employee "${employee.firstName} ${employee.lastName}"? This action will soft-delete the employee.`,
+      onConfirm: async () => {
+        try {
+          await dispatch(
+            deleteEmployee(parseInt(employee.employeeId!))
+          ).unwrap();
+          const params: any = {
+            pageIndex: paginationModel.page,
+            pageSize: paginationModel.pageSize,
+          };
+          if (searchTerm) params.search = searchTerm;
+          if (departmentFilter) params.department = departmentFilter;
+          if (positionFilter) params.position = positionFilter;
+          dispatch(getEmployeeList(params));
+          alert("Employee deleted successfully");
+        } catch (error: any) {
+          alert(`Failed to delete employee: ${error}`);
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   const handleDeleteSelected = () => {
-    console.log("Delete selected employees:", employeeList);
-  };
+    if (selectionModel.type === "include" && selectionModel.ids.size === 0) {
+      alert("Please select employees to delete");
+      return;
+    }
 
-  const handleDelete = async (employee: Employee) => {
-    console.log("Delete employee:", employee);
-    // Add your delete logic here
+    const selectedIds = Array.from(selectionModel.ids) as string[];
+    const count =
+      selectionModel.type === "include"
+        ? selectedIds.length
+        : employees.length - selectedIds.length;
+
+    setConfirmDialog({
+      open: true,
+      title: "Delete Multiple Employees",
+      message: `Are you sure you want to delete ${count} selected employee(s)?`,
+      onConfirm: async () => {
+        try {
+          const idsToDelete =
+            selectionModel.type === "include"
+              ? selectedIds
+              : employees
+                  .map((e) => e.employeeId)
+                  .filter(
+                    (id): id is string =>
+                      id !== undefined && !selectedIds.includes(id)
+                  );
+
+          await Promise.all(
+            idsToDelete.map((id) =>
+              dispatch(deleteEmployee(parseInt(id))).unwrap()
+            )
+          );
+          const params: any = {
+            pageIndex: paginationModel.page,
+            pageSize: paginationModel.pageSize,
+          };
+          if (searchTerm) params.search = searchTerm;
+          if (departmentFilter) params.department = departmentFilter;
+          if (positionFilter) params.position = positionFilter;
+          dispatch(getEmployeeList(params));
+          alert(`${count} employee(s) deleted successfully`);
+        } catch (error: any) {
+          alert(`Failed to delete employees: ${error}`);
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
   const importEmployees = (employees: Employee[]) => {
     console.log("Importing employees:", employees);
@@ -431,6 +549,18 @@ function EmployeeListView() {
         mode={modalMode}
         employee={selectedEmployee}
         onSave={handleSaveEmployee}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Delete"
+        cancelText="Cancel"
+        severity="error"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, open: false })}
       />
     </>
   );

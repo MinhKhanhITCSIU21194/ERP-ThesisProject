@@ -22,7 +22,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { selectAuth } from "../../../../../../redux/auth/auth.slice";
 import { UserPermission } from "../../../../../../data/auth/role";
 import { selectEmployee } from "../../../../../../redux/employee/employee.slice";
-
+import { useBreadcrumbLabel } from "../../../../../components/breadcrumbs";
 function EmployeeContractView() {
   const { id } = useParams();
   const dispatch = useAppDispatch();
@@ -34,6 +34,13 @@ function EmployeeContractView() {
     page: 0,
     pageSize: 10,
   });
+
+  // Update breadcrumb with employee name
+  useBreadcrumbLabel(
+    selectedEmployee
+      ? `${selectedEmployee.firstName} ${selectedEmployee.lastName} - Contracts`
+      : `Employee #${id} - Contracts`
+  );
 
   useEffect(() => {
     if (id) {

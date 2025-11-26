@@ -11,6 +11,7 @@ type TableProps = {
   columns: GridColDef[];
   rows: any[];
   sx: SxProps;
+  checkboxSelection?: boolean;
   onSelectionChange?: (a: GridRowSelectionModel) => void;
   onSelectAll?: (isSelected: boolean, selectedRows: any[]) => void;
   onPaginationChange?: (page: number, pageSize: number) => void;
@@ -19,12 +20,14 @@ type TableProps = {
   paginationMode?: "client" | "server";
   loading?: boolean;
   getRowId?: (row: any) => string;
+  onRowClick?: (params: any) => void;
 };
 
 export const CustomTable = ({
   columns,
   rows,
   sx,
+  checkboxSelection = true,
   onSelectionChange,
   onSelectAll,
   onPaginationChange,
@@ -33,6 +36,7 @@ export const CustomTable = ({
   paginationMode = "client",
   loading = false,
   getRowId,
+  onRowClick,
   ...props
 }: TableProps) => {
   const [selectedRows, setSelectedRows] = React.useState<GridRowSelectionModel>(
@@ -58,7 +62,7 @@ export const CustomTable = ({
     }
   };
 
-  const defaultGetRowId = (row: any) => row.employeeId || row.id;
+  const defaultGetRowId = (row: any) => row.id || row.employeeId;
 
   return (
     <Paper style={{ minHeight: 400 }} sx={sx}>
@@ -69,12 +73,21 @@ export const CustomTable = ({
         paginationModel={paginationModel}
         onPaginationModelChange={handlePaginationChange}
         pageSizeOptions={[5, 10, 20, 50, 100]}
-        checkboxSelection={true}
+        checkboxSelection={checkboxSelection}
         rowSelectionModel={selectedRows}
         onRowSelectionModelChange={handleSelectionChange}
         paginationMode={paginationMode}
         rowCount={rowCount}
         loading={loading}
+        onRowClick={onRowClick}
+        sx={{
+          cursor: onRowClick ? "pointer" : "default",
+          "& .MuiDataGrid-row:hover": onRowClick
+            ? {
+                backgroundColor: "action.hover",
+              }
+            : {},
+        }}
         {...props}
       />
     </Paper>

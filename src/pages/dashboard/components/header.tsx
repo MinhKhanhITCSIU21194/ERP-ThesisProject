@@ -24,8 +24,10 @@ import { selectNotification } from "../../../redux/notification/notification.sli
 import { getUnreadCount } from "../../../services/notification";
 import { useSocket } from "../../../context/socket-provider";
 import NotificationDropdown from "./notificationDropdown";
+import { useRouter } from "../../../routes/hooks/useRouter";
 
 function Header() {
+  const router = useRouter();
   const AuthState = useAppSelector(selectAuth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -72,12 +74,12 @@ function Header() {
 
   const handleViewProfile = () => {
     handleAvatarMenuClose();
-    navigate("/dashboard/profile");
+    router.push("/dashboard/profile");
   };
 
   const handleRequestLeave = () => {
     handleAvatarMenuClose();
-    navigate("/dashboard/leave/request");
+    router.push("/dashboard/request-leave");
   };
 
   const handleLogoutClick = async () => {

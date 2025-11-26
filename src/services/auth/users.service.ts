@@ -1,6 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { TableFilterState } from "../../redux/store";
-import { GET } from "../axios";
+import { GET, PATCH, POST, PUT } from "../axios";
 
 export const getUserList = createAsyncThunk(
   "user/get-list",
@@ -13,6 +13,60 @@ export const getUserList = createAsyncThunk(
         error.response?.data?.message ||
         error.message ||
         "Failed to fetch users";
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const createUser = createAsyncThunk(
+  "user/create",
+  async (data: any, { rejectWithValue }) => {
+    try {
+      const response = await POST("/users", data);
+      return response.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create user";
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const updateUser = createAsyncThunk(
+  "user/update",
+  async (
+    { userId, data }: { userId: string; data: any },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await PUT(`/users/${userId}`, data);
+      return response.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update user";
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const updateUserStatus = createAsyncThunk(
+  "user/update-status",
+  async (
+    { userId, isActive }: { userId: string; isActive: boolean },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await PATCH(`/users/${userId}/status`, { isActive });
+      return { userId, isActive, ...response.data };
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update user status";
       return rejectWithValue(message);
     }
   }

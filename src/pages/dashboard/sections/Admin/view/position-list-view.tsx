@@ -34,6 +34,7 @@ import {
 } from "../../../../../services/position.service";
 import { selectAuth } from "../../../../../redux/auth/auth.slice";
 import CustomButton from "../../../../components/Button";
+import ConfirmationDialog from "../../../../components/ConfirmationWindow";
 
 // Position levels enum
 const PositionLevels = [
@@ -82,6 +83,19 @@ function PositionListView() {
       type: "include",
       ids: new Set(),
     });
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   // Fetch positions on mount
   useEffect(() => {
@@ -189,19 +203,23 @@ function PositionListView() {
     }
   };
 
-  const handleDelete = async (position: Position) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete the position "${position.name}"?`
-      )
-    ) {
-      try {
-        await dispatch(deletePosition(position.id)).unwrap();
-        dispatch(getPositionList());
-      } catch (err: any) {
-        alert(err || "Failed to delete position");
-      }
-    }
+  const handleDelete = (position: Position) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Position",
+      message: `Are you sure you want to delete the position "${position.name}"?`,
+      onConfirm: async () => {
+        try {
+          await dispatch(deletePosition(position.id)).unwrap();
+          dispatch(getPositionList());
+          alert("Position deleted successfully");
+        } catch (err: any) {
+          alert(err || "Failed to delete position");
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   const formatSalaryRange = (position: Position): string => {
@@ -585,6 +603,18 @@ function PositionListView() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Delete"
+        cancelText="Cancel"
+        severity="error"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, open: false })}
+      />
     </>
   );
 }

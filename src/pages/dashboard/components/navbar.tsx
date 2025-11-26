@@ -48,7 +48,7 @@ const EMPLOYEE_SUBTABS = [
   {
     name: "Leave Requests",
     icon: EventBusyIcon,
-    path: "/dashboard/employee/leave",
+    path: "/dashboard/employee/leave-requests",
     requiredRole: UserPermission.LEAVE_MANAGEMENT,
     canView: true,
   },
@@ -106,7 +106,7 @@ const TABS = [
     icon: AssignmentIcon,
     path: "/dashboard/projects",
     subTabs: [],
-    requiredRole: UserPermission.PROJECT_MANAGEMENT,
+    requiredRole: UserPermission.TASK_MANAGEMENT,
     canView: true,
   },
   {

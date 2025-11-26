@@ -8,6 +8,8 @@ import notificationReducer from "./notification/notification.slice";
 import { usersSlice } from "./admin/users.slice";
 import { roleSlice } from "./auth/role.slice";
 import { contractSlice } from "./employee/contract.slice";
+import leaveRequestReducer from "./leave-request/leave-request.slice";
+import projectReducer from "./project/project.slice";
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +21,8 @@ export const store = configureStore({
     user: usersSlice.reducer,
     role: roleSlice.reducer,
     contract: contractSlice.reducer,
+    leaveRequest: leaveRequestReducer,
+    project: projectReducer,
   },
 });
 

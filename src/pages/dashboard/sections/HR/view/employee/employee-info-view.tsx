@@ -90,46 +90,50 @@ function EmployeeInfoView({
 
       <DialogContent sx={{ pt: 3 }}>
         <Grid container spacing={3}>
-          {/* Profile Section */}
-          <Grid>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 3,
-                mb: 3,
-                p: 2,
-                bgcolor: "background.default",
-                borderRadius: 2,
-              }}
-            >
-              <Avatar
+          {mode === "view" && (
+            <Grid>
+              <Box
                 sx={{
-                  width: 100,
-                  height: 100,
-                  fontSize: "2.5rem",
-                  bgcolor: "primary.main",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
+                  mb: 3,
+                  p: 2,
+                  bgcolor: "background.default",
+                  borderRadius: 2,
                 }}
               >
-                {employee?.firstName?.[0]}
-                {employee?.lastName?.[0]}
-              </Avatar>
-              <Box>
-                <Typography variant="h6" fontWeight={600}>
-                  {employee?.firstName} {employee?.lastName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {employee?.positionEntity?.name || "N/A"}
-                </Typography>
-                <Chip
-                  label={employee?.employmentStatus || "Active"}
-                  size="small"
-                  color="success"
-                  sx={{ mt: 1 }}
-                />
+                <Box>
+                  <Avatar
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      fontSize: "2.5rem",
+                      bgcolor: "primary.main",
+                    }}
+                  >
+                    {employee?.firstName?.[0]}
+                    {employee?.lastName?.[0]}
+                  </Avatar>
+
+                  <Box>
+                    <Typography variant="h6" fontWeight={600}>
+                      {employee?.firstName} {employee?.lastName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {employee?.positionEntity?.name || "N/A"}
+                    </Typography>
+                    <Chip
+                      label={employee?.employmentStatus || "Active"}
+                      size="small"
+                      color="success"
+                      sx={{ mt: 1 }}
+                    />
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          </Grid>
+            </Grid>
+          )}
 
           {/* Personal Information */}
           <Grid size={{ xs: 12 }}>
@@ -147,6 +151,7 @@ function EmployeeInfoView({
               defaultValue={employee?.firstName || ""}
               disabled={isViewMode}
               required
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -158,6 +163,7 @@ function EmployeeInfoView({
               defaultValue={employee?.lastName || ""}
               disabled={isViewMode}
               required
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -170,6 +176,7 @@ function EmployeeInfoView({
               defaultValue={employee?.email || ""}
               disabled={isViewMode}
               required
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -180,6 +187,7 @@ function EmployeeInfoView({
               name="phoneNumber"
               defaultValue={employee?.phoneNumber || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -191,6 +199,7 @@ function EmployeeInfoView({
               type="date"
               defaultValue={employee?.dateOfBirth || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -218,6 +227,7 @@ function EmployeeInfoView({
               disabled={isViewMode}
               multiline
               rows={2}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -321,6 +331,7 @@ function EmployeeInfoView({
               name="emergencyContactName"
               defaultValue={employee?.emergencyContactName || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -331,6 +342,7 @@ function EmployeeInfoView({
               name="emergencyContactPhone"
               defaultValue={employee?.emergencyContactPhone || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -341,6 +353,7 @@ function EmployeeInfoView({
               name="emergencyContactRelationship"
               defaultValue={employee?.emergencyContactRelationship || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -359,6 +372,7 @@ function EmployeeInfoView({
               name="bankAccountNumber"
               defaultValue={employee?.bankAccountNumber || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -369,6 +383,7 @@ function EmployeeInfoView({
               name="bankName"
               defaultValue={employee?.bankName || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -379,6 +394,7 @@ function EmployeeInfoView({
               name="taxId"
               defaultValue={employee?.taxId || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -389,6 +405,7 @@ function EmployeeInfoView({
               name="socialSecurityNumber"
               defaultValue={employee?.socialSecurityNumber || ""}
               disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
         </Grid>

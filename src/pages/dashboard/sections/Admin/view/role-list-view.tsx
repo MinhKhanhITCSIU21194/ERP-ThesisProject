@@ -53,6 +53,8 @@ function RoleListView() {
     permissions: [] as Permission[],
   });
   const [error, setError] = useState<string | null>(null);
+  const [inputName, setInputName] = useState("");
+  const [inputDescription, setInputDescription] = useState("");
 
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0,
@@ -86,11 +88,15 @@ function RoleListView() {
 
   const handleEdit = (role: Role) => {
     setSelectedRole(role);
+    const name = role.name;
+    const description = role.description || "";
     setFormData({
-      name: role.name,
-      description: role.description || "",
+      name,
+      description,
       permissions: role.permissions || [],
     });
+    setInputName(name);
+    setInputDescription(description);
     setModalMode("edit");
     setModalOpen(true);
     setError(null);
@@ -103,6 +109,8 @@ function RoleListView() {
       description: "",
       permissions: [],
     });
+    setInputName("");
+    setInputDescription("");
     setModalMode("add");
     setModalOpen(true);
     setError(null);
@@ -112,7 +120,27 @@ function RoleListView() {
     setModalOpen(false);
     setSelectedRole(null);
     setError(null);
+    setInputName("");
+    setInputDescription("");
   };
+
+  // Debounce effect for name input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFormData((prev) => ({ ...prev, name: inputName }));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [inputName]);
+
+  // Debounce effect for description input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFormData((prev) => ({ ...prev, description: inputDescription }));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [inputDescription]);
 
   const handleSaveRole = async () => {
     try {
@@ -416,20 +444,16 @@ function RoleListView() {
             <TextField
               fullWidth
               label="Role Name"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              value={inputName}
+              onChange={(e) => setInputName(e.target.value)}
               margin="normal"
               required
             />
             <TextField
               fullWidth
               label="Description"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
+              value={inputDescription}
+              onChange={(e) => setInputDescription(e.target.value)}
               margin="normal"
               multiline
               rows={2}

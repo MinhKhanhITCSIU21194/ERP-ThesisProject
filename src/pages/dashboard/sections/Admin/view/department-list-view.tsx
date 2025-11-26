@@ -15,13 +15,20 @@ import GroupIcon from "@mui/icons-material/Group";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
-import { getDepartmentList } from "../../../../../services/department.service";
+import {
+  getDepartmentList,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+} from "../../../../../services/department.service";
 import { selectDepartment } from "../../../../../redux/admin/department.slice";
 import { selectAuth } from "../../../../../redux/auth/auth.slice";
 import { Department } from "../../../../../data/employer/department";
 import CustomButton from "../../../../components/Button";
 import { UserPermission } from "../../../../../data/auth/role";
 import { CustomTable } from "../../../../components/Table";
+import DepartmentInfoView from "./department/department-info-view";
+import ConfirmationDialog from "../../../../components/ConfirmationWindow";
 
 function DepartmentListView() {
   const { user } = useAppSelector(selectAuth);
@@ -42,6 +49,25 @@ function DepartmentListView() {
 
   // State for expanded rows
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "add">("view");
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<Department | null>(null);
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   // Fetch departments on mount
   useEffect(() => {
@@ -141,28 +167,117 @@ function DepartmentListView() {
   };
 
   const handleAddNewDepartment = () => {
-    console.log("Add new department");
-    // Add your create logic here
+    setSelectedDepartment(null);
+    setModalMode("add");
+    setModalOpen(true);
   };
 
   const handleView = (department: Department) => {
-    console.log("View department:", department);
-    // Add your view logic here
+    setSelectedDepartment(department);
+    setModalMode("view");
+    setModalOpen(true);
   };
 
   const handleEdit = (department: Department) => {
-    console.log("Edit department:", department);
-    // Add your edit logic here
+    setSelectedDepartment(department);
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
   const handleDelete = (department: Department) => {
-    console.log("Delete department:", department);
-    // Add your delete logic here
+    setConfirmDialog({
+      open: true,
+      title: "Delete Department",
+      message: `Are you sure you want to delete "${department.name}"? This will soft-delete the department.`,
+      onConfirm: async () => {
+        try {
+          await dispatch(deleteDepartment(department.id)).unwrap();
+          dispatch(getDepartmentList());
+          alert("Department deleted successfully");
+        } catch (error: any) {
+          alert(`Failed to delete department: ${error}`);
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   const handleDeleteSelected = () => {
-    console.log("Delete selected departments");
-    // Add your bulk delete logic here
+    if (selectionModel.type === "include" && selectionModel.ids.size === 0) {
+      alert("Please select departments to delete");
+      return;
+    }
+
+    const selectedIds = Array.from(selectionModel.ids) as string[];
+    const count =
+      selectionModel.type === "include"
+        ? selectedIds.length
+        : flattenedDepartments.length - selectedIds.length;
+
+    setConfirmDialog({
+      open: true,
+      title: "Delete Multiple Departments",
+      message: `Are you sure you want to delete ${count} selected department(s)?`,
+      onConfirm: async () => {
+        try {
+          const idsToDelete =
+            selectionModel.type === "include"
+              ? selectedIds
+              : flattenedDepartments
+                  .map((d) => d.id)
+                  .filter((id) => !selectedIds.includes(id));
+
+          await Promise.all(
+            idsToDelete.map((id) => dispatch(deleteDepartment(id)).unwrap())
+          );
+          dispatch(getDepartmentList());
+          alert(`${count} department(s) deleted successfully`);
+        } catch (error: any) {
+          alert(`Failed to delete departments: ${error}`);
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedDepartment(null);
+  };
+
+  const handleSaveDepartment = async (department: any) => {
+    try {
+      if (department.id) {
+        // Update existing department
+        await dispatch(
+          updateDepartment({
+            id: department.id,
+            data: {
+              name: department.name,
+              managerId: department.managerId || undefined,
+              parentId: department.parentId || null,
+            },
+          })
+        ).unwrap();
+        alert("Department updated successfully");
+      } else {
+        // Create new department
+        await dispatch(
+          createDepartment({
+            name: department.name,
+            managerId: department.managerId || undefined,
+            parentId: department.parentId || null,
+          })
+        ).unwrap();
+        alert("Department created successfully");
+      }
+      handleCloseModal();
+      dispatch(getDepartmentList());
+    } catch (error: any) {
+      alert(`Failed to save department: ${error}`);
+    }
   };
 
   const columns: GridColDef[] = [
@@ -393,6 +508,27 @@ function DepartmentListView() {
             outline: "none",
           },
         }}
+      />
+
+      {/* Department Info Modal */}
+      <DepartmentInfoView
+        open={modalOpen}
+        onClose={handleCloseModal}
+        mode={modalMode}
+        department={selectedDepartment}
+        onSave={handleSaveDepartment}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Delete"
+        cancelText="Cancel"
+        severity="error"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, open: false })}
       />
     </Paper>
   );

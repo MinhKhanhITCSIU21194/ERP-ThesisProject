@@ -2,7 +2,6 @@ import React from "react";
 import { DashboardLayout } from "../../pages/dashboard";
 import { ProtectedRoute } from "../protectedRoutes";
 import Dashboard from "../../pages/dashboard/components/dashboard";
-import Projects from "../../pages/dashboard/sections/Projects/view/project-list-view";
 import EmployeeListView from "../../pages/dashboard/sections/HR/view/employee-list-view";
 import ContractListView from "../../pages/dashboard/sections/HR/view/contract-list-view";
 import DepartmentListView from "../../pages/dashboard/sections/Admin/view/department-list-view";
@@ -10,6 +9,12 @@ import UserListView from "../../pages/dashboard/sections/Admin/view/user-list-vi
 import RoleListView from "../../pages/dashboard/sections/Admin/view/role-list-view";
 import PositionListView from "../../pages/dashboard/sections/Admin/view/position-list-view";
 import EmployeeContractView from "../../pages/dashboard/sections/HR/view/employee/employee-contract-view";
+import LeaveRequestView from "../../pages/dashboard/sections/HR/view/leave-request-view";
+import EmployeeRequestLeaveView from "../../pages/dashboard/sections/Employee/view/employee-request-leave-view";
+import Projects from "../../pages/dashboard/sections/Projects/view/dashboard-home-view";
+import TaskDetailView from "../../pages/dashboard/sections/Projects/components/task-details-view";
+import ProjectListView from "../../pages/dashboard/sections/Projects/view/project-list-view";
+import ProjectDetailsView from "../../pages/dashboard/sections/Projects/components/project-details-view";
 
 export const dashboardRoutes = [
   {
@@ -28,6 +33,22 @@ export const dashboardRoutes = [
         path: "projects",
         element: <Projects />,
       },
+      {
+        path: "projects/list",
+        element: <ProjectListView />,
+      },
+      {
+        path: "projects/create",
+        element: <ProjectDetailsView />,
+      },
+      {
+        path: "projects/:id",
+        element: <ProjectDetailsView />,
+      },
+      {
+        path: "projects/tasks/:id",
+        element: <TaskDetailView />,
+      },
       // Add more routes here as you create new pages
       // Example:
       {
@@ -41,6 +62,14 @@ export const dashboardRoutes = [
       {
         path: "employee/contract/:id",
         element: <EmployeeContractView />,
+      },
+      {
+        path: "employee/leave-requests",
+        element: <LeaveRequestView />,
+      },
+      {
+        path: "request-leave",
+        element: <EmployeeRequestLeaveView />,
       },
     ],
   },
