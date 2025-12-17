@@ -56,7 +56,7 @@ function UserInfoView({
     password: "",
     confirmPassword: "",
     roleId: "",
-    employeeId: "",
+    employeeCode: "",
     isEmailVerified: false,
     status: UserStatus.PENDING,
   });
@@ -81,7 +81,7 @@ function UserInfoView({
         password: "",
         confirmPassword: "",
         roleId: user.role?.roleId?.toString() || user.role?.id || "",
-        employeeId: user.employeeID || "",
+        employeeCode: user.employeeCode || "",
         isEmailVerified: user.isEmailVerified || false,
         status: UserStatus.ACTIVE,
       });
@@ -94,7 +94,7 @@ function UserInfoView({
         password: "",
         confirmPassword: "",
         roleId: "",
-        employeeId: "",
+        employeeCode: "",
         isEmailVerified: false,
         status: UserStatus.PENDING,
       });
@@ -184,10 +184,10 @@ function UserInfoView({
       lastName: formData.lastName,
       email: formData.email,
       username: formData.username || formData.email.split("@")[0],
-      roleId: formData.roleId,
-      employeeId: formData.employeeId || undefined,
+      roleId: parseInt(formData.roleId), // Convert string to number
+      employeeCode: formData.employeeCode || null,
       isEmailVerified: formData.isEmailVerified,
-      status: formData.status,
+      isActive: formData.status === UserStatus.ACTIVE,
     };
 
     // Only include password if it's provided
@@ -205,7 +205,7 @@ function UserInfoView({
   };
 
   const selectedEmployee = availableEmployees.find(
-    (e) => e.employeeId === formData.employeeId
+    (e) => e.employeeCode === formData.employeeCode
   );
 
   return (
@@ -355,54 +355,6 @@ function UserInfoView({
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-
-          {/* Password fields - only show in add or edit mode */}
-          {!isViewMode && (
-            <>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label={
-                    isEditMode
-                      ? "New Password (leave blank to keep current)"
-                      : "Password"
-                  }
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    handleInputChange("password", e.target.value)
-                  }
-                  required={isAddMode}
-                  error={!!passwordError}
-                  helperText={
-                    isEditMode
-                      ? "Leave blank to keep current password"
-                      : "Minimum 8 characters"
-                  }
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Confirm Password"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    handleInputChange("confirmPassword", e.target.value)
-                  }
-                  required={isAddMode || !!formData.password}
-                  error={!!passwordError}
-                  helperText={passwordError}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-            </>
-          )}
-
           <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth disabled={isViewMode} required>
               <InputLabel>Role</InputLabel>
@@ -432,11 +384,11 @@ function UserInfoView({
               fullWidth
               options={availableEmployees}
               getOptionLabel={(option) =>
-                `${option.firstName} ${option.lastName} - ${option.email}`
+                `${option.employeeCode} - ${option.firstName} ${option.lastName}`
               }
               value={selectedEmployee || null}
               onChange={(_, newValue) =>
-                handleInputChange("employeeId", newValue?.employeeId || "")
+                handleInputChange("employeeCode", newValue?.employeeCode || "")
               }
               onInputChange={(_, newInputValue) => {
                 setEmployeeSearchTerm(newInputValue);

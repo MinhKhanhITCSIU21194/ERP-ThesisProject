@@ -5,12 +5,23 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
-import { getContractsByEmployeeId } from "../../../../../../services/contract.service";
-import { selectContract } from "../../../../../../redux/employee/contract.slice";
+import {
+  getContractsByEmployeeId,
+  deleteContract,
+} from "../../../../../../services/contract.service";
+import {
+  selectContract,
+  clearSelectedContract,
+} from "../../../../../../redux/employee/contract.slice";
 import { CustomTable } from "../../../../../components/Table";
 import {
   Contract,
@@ -19,12 +30,20 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import AddIcon from "@mui/icons-material/Add";
 import { selectAuth } from "../../../../../../redux/auth/auth.slice";
 import { UserPermission } from "../../../../../../data/auth/role";
-import { selectEmployee } from "../../../../../../redux/employee/employee.slice";
+import {
+  selectEmployee,
+  selectSpecificEmployee,
+} from "../../../../../../redux/employee/employee.slice";
 import { useBreadcrumbLabel } from "../../../../../components/breadcrumbs";
+import { getEmployeeByIdService } from "../../../../../../services/employee.service";
+import EmployeeContractFormView from "./employee-contract-form-view";
+
 function EmployeeContractView() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { selectedEmployee } = useAppSelector(selectEmployee);
   const { contracts, selectedContracts, isLoading } =
@@ -35,12 +54,37 @@ function EmployeeContractView() {
     pageSize: 10,
   });
 
-  // Update breadcrumb with employee name
-  useBreadcrumbLabel(
-    selectedEmployee
-      ? `${selectedEmployee.firstName} ${selectedEmployee.lastName} - Contracts`
-      : `Employee #${id} - Contracts`
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contractToDelete, setContractToDelete] = useState<Contract | null>(
+    null
   );
+
+  // Form dialog state (handles view/edit/create)
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"view" | "edit" | "create">(
+    "view"
+  );
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(
+    null
+  );
+
+  // Fetch employee data if not already loaded
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      if (id && !selectedEmployee) {
+        try {
+          const response = await getEmployeeByIdService(id);
+          if (response.success && response.data) {
+            dispatch(selectSpecificEmployee(response.data));
+          }
+        } catch (error) {
+          console.error("Error fetching employee:", error);
+        }
+      }
+    };
+    fetchEmployee();
+  }, [id, selectedEmployee, dispatch]);
 
   useEffect(() => {
     if (id) {
@@ -56,34 +100,105 @@ function EmployeeContractView() {
     }
   }, [id, dispatch, paginationModel.page, paginationModel.pageSize]);
 
+  useBreadcrumbLabel(selectedEmployee?.employeeCode || `Employee #${id}`);
+
   const handlePaginationChange = (page: number, pageSize: number) => {
     setPaginationModel({ page, pageSize });
   };
 
   const handleView = (contract: Contract) => {
-    console.log("View contract:", contract);
-    // Add your view logic here
+    setSelectedContract(contract);
+    setDialogMode("view");
+    setFormDialogOpen(true);
   };
 
   const handleEdit = (contract: Contract) => {
-    console.log("Edit contract:", contract);
-    // Add your edit logic here
+    setSelectedContract(contract);
+    setDialogMode("edit");
+    setFormDialogOpen(true);
   };
 
   const handleDelete = (contract: Contract) => {
-    console.log("Delete contract:", contract);
-    // Add your delete logic here
+    setContractToDelete(contract);
+    setDeleteDialogOpen(true);
   };
 
-  const getStatusColor = (status: ContractStatus) => {
-    switch (status) {
-      case ContractStatus.ACTIVE:
+  const handleCreateNew = () => {
+    setSelectedContract(null);
+    setDialogMode("create");
+    setFormDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (contractToDelete) {
+      try {
+        await dispatch(deleteContract(contractToDelete.id)).unwrap();
+        setDeleteDialogOpen(false);
+        setContractToDelete(null);
+        // Refresh the list
+        if (id) {
+          dispatch(
+            getContractsByEmployeeId({
+              id,
+              params: {
+                pageIndex: paginationModel.page,
+                pageSize: paginationModel.pageSize,
+              },
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Error deleting contract:", error);
+      }
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setContractToDelete(null);
+    dispatch(clearSelectedContract());
+  };
+
+  const handleFormSuccess = () => {
+    setFormDialogOpen(false);
+    setSelectedContract(null);
+    dispatch(clearSelectedContract());
+    // Refresh the list
+    if (id) {
+      dispatch(
+        getContractsByEmployeeId({
+          id,
+          params: {
+            pageIndex: paginationModel.page,
+            pageSize: paginationModel.pageSize,
+          },
+        })
+      );
+    }
+  };
+
+  const handleFormCancel = () => {
+    dispatch(clearSelectedContract());
+    setFormDialogOpen(false);
+    setSelectedContract(null);
+  };
+
+  const getStatusColor = (
+    status: ContractStatus | string
+  ): "success" | "warning" | "error" | "default" => {
+    const statusStr = String(status).toUpperCase();
+    switch (statusStr) {
+      case "ACTIVE":
+      case ContractStatus.ACTIVE.toUpperCase():
         return "success";
-      case ContractStatus.PENDING:
+      case "PENDING":
+      case ContractStatus.PENDING.toUpperCase():
         return "warning";
-      case ContractStatus.EXPIRED:
+      case "EXPIRED":
+      case ContractStatus.EXPIRED.toUpperCase():
         return "error";
-      case ContractStatus.TERMINATED:
+      case "TERMINATED":
+      case ContractStatus.TERMINATED.toUpperCase():
         return "default";
       default:
         return "default";
@@ -221,41 +336,93 @@ function EmployeeContractView() {
     },
   ];
 
+  // Check permissions
+  const contractPermission = user?.role?.permissions?.find(
+    (p) => p.permission === UserPermission.CONTRACT_MANAGEMENT
+  );
+  const canCreate = contractPermission?.canCreate || false;
+
   return (
-    <Paper
-      sx={{
-        p: { xs: 2, sm: 3 },
-        m: { xs: 1, sm: 2 },
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        boxSizing: "border-box",
-      }}
-    >
-      <Box
+    <>
+      <Paper
         sx={{
+          p: { xs: 2, sm: 3 },
+          m: { xs: 1, sm: 2 },
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1,
+          flexDirection: "column",
+          gap: 2,
+          boxSizing: "border-box",
         }}
       >
-        <Typography variant="h5" fontWeight={600}>
-          Contracts of {selectedEmployee?.fullName}
-        </Typography>
-      </Box>
-      <CustomTable
-        onPaginationChange={handlePaginationChange}
-        paginationModel={paginationModel}
-        paginationMode="client"
-        loading={isLoading}
-        sx={{ padding: "2" }}
-        columns={columns}
-        rows={contracts || []}
-        getRowId={(row) => row.id}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 1,
+          }}
+        >
+          <Typography variant="h5" fontWeight={600}>
+            Contracts of {selectedEmployee?.firstName}{" "}
+            {selectedEmployee?.lastName}
+          </Typography>
+          {canCreate && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateNew}
+            >
+              Add Contract
+            </Button>
+          )}
+        </Box>
+        <CustomTable
+          onPaginationChange={handlePaginationChange}
+          paginationModel={paginationModel}
+          paginationMode="client"
+          loading={isLoading}
+          sx={{ padding: "2" }}
+          columns={columns}
+          rows={contracts || []}
+          getRowId={(row) => row.id}
+          checkboxSelection={false}
+        />
+      </Paper>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={cancelDelete}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete contract{" "}
+            <strong>{contractToDelete?.contractNumber}</strong>? This action
+            cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Contract Form Dialog (View/Edit/Create) */}
+      <EmployeeContractFormView
+        open={formDialogOpen}
+        mode={dialogMode}
+        employeeId={id || ""}
+        contract={selectedContract}
+        onSuccess={handleFormSuccess}
+        onCancel={handleFormCancel}
       />
-    </Paper>
+    </>
   );
 }
 

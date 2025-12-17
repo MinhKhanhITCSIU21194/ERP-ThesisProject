@@ -14,7 +14,8 @@ export type User = {
   role: Role;
   accessToken: string;
   refreshToken: string;
-  employeeID: string;
+  employeeId?: string; // Employee UUID for API calls
+  employeeCode: string; // Employee code string (e.g., "EMP0001")
 };
 export enum UserStatus {
   PENDING = "PENDING",

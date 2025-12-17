@@ -97,7 +97,7 @@ export const FilterSearchField: React.FC<FilterSearchFieldProps> = ({
         }}
       />
       {/* Position Filter */}
-      {onPositionChange && positions.length > 0 && (
+      {onPositionChange && (
         <Autocomplete
           size="small"
           options={positions}
@@ -111,7 +111,7 @@ export const FilterSearchField: React.FC<FilterSearchFieldProps> = ({
         />
       )}
       {/* Department Filter */}
-      {onDepartmentChange && departments.length > 0 && (
+      {onDepartmentChange && (
         <Autocomplete
           size="small"
           options={departments}

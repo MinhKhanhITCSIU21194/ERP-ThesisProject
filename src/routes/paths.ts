@@ -30,7 +30,7 @@ export const paths = {
     detail: (id: string) => `/dashboard/projects/${id}`,
     taskDetail: (id: string) => `/dashboard/projects/tasks/${id}`,
     sprint: "/dashboard/projects/sprints",
-    board: "/dashboard/projects/sprints/board",
+    board: (id: string) => `/dashboard/projects/sprints/board/${id}`,
     kanban: "/dashboard/projects/kanban",
   },
   leave: {

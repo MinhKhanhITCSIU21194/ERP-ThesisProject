@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -17,12 +17,15 @@ import {
   MenuItem,
   Grid,
   Button,
+  SelectChangeEvent,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { Employee } from "../../../../../../data/employee/employee";
 import { getDepartmentList } from "../../../../../../services/department.service";
+import { getPositionList } from "../../../../../../services/position.service";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import { selectDepartment } from "../../../../../../redux/admin/department.slice";
+import { selectPosition } from "../../../../../../redux/admin/position.slice";
 
 interface EmployeeInfoViewProps {
   open: boolean;
@@ -41,16 +44,75 @@ function EmployeeInfoView({
 }: EmployeeInfoViewProps) {
   const dispatch = useAppDispatch();
   const { departments } = useAppSelector(selectDepartment);
+  const { positions } = useAppSelector(selectPosition);
   const isViewMode = mode === "view";
   const isEditMode = mode === "edit";
   const isAddMode = mode === "add";
+
+  // Form state
+  const [formData, setFormData] = useState<Partial<Employee>>({});
+
+  useEffect(() => {
+    if (open) {
+      dispatch(getDepartmentList());
+      dispatch(getPositionList());
+
+      // Initialize form data when modal opens
+      if (employee && (isEditMode || isViewMode)) {
+        const departmentIds =
+          employee.departments
+            ?.map((d) => d.department?.id || d.departmentId)
+            .filter(Boolean) ||
+          employee.departmentIds ||
+          [];
+        setFormData({
+          ...employee,
+          positionId: employee.positionEntity?.id || employee.positionId,
+          departmentIds: departmentIds,
+        });
+      } else if (isAddMode) {
+        setFormData({});
+      }
+    }
+  }, [open, dispatch, employee, isEditMode, isViewMode, isAddMode]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (e: SelectChangeEvent<any>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name as string]: value }));
+  };
+
+  const handleSubmit = () => {
+    if (!onSave) return;
+
+    // Prepare data for submission
+    const employeeData: any = {
+      ...formData,
+      employeeId: employee?.employeeId,
+    };
+
+    // Remove empty arrays and empty strings to prevent backend issues
+    if (employeeData.departmentIds && employeeData.departmentIds.length === 0) {
+      delete employeeData.departmentIds;
+    }
+    if (!employeeData.positionId || employeeData.positionId === "") {
+      delete employeeData.positionId;
+    }
+
+    onSave(employeeData);
+  };
 
   const getTitle = () => {
     if (isViewMode) return "Employee Details";
     if (isEditMode) return "Edit Employee";
     return "Add New Employee";
   };
-  console.log(departments);
   return (
     <Dialog
       open={open}
@@ -148,7 +210,8 @@ function EmployeeInfoView({
               fullWidth
               label="First Name"
               name="firstName"
-              defaultValue={employee?.firstName || ""}
+              value={formData.firstName || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               required
               InputLabelProps={{ shrink: true }}
@@ -160,7 +223,8 @@ function EmployeeInfoView({
               fullWidth
               label="Last Name"
               name="lastName"
-              defaultValue={employee?.lastName || ""}
+              value={formData.lastName || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               required
               InputLabelProps={{ shrink: true }}
@@ -173,7 +237,8 @@ function EmployeeInfoView({
               label="Email"
               name="email"
               type="email"
-              defaultValue={employee?.email || ""}
+              value={formData.email || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               required
               InputLabelProps={{ shrink: true }}
@@ -185,7 +250,8 @@ function EmployeeInfoView({
               fullWidth
               label="Phone Number"
               name="phoneNumber"
-              defaultValue={employee?.phoneNumber || ""}
+              value={formData.phoneNumber || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -197,7 +263,8 @@ function EmployeeInfoView({
               label="Date of Birth"
               name="dateOfBirth"
               type="date"
-              defaultValue={employee?.dateOfBirth || ""}
+              value={formData.dateOfBirth || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -208,7 +275,8 @@ function EmployeeInfoView({
               <InputLabel>Gender</InputLabel>
               <Select
                 name="gender"
-                defaultValue={employee?.gender || ""}
+                value={formData.gender || ""}
+                onChange={handleSelectChange}
                 label="Gender"
               >
                 <MenuItem value="MALE">Male</MenuItem>
@@ -223,7 +291,8 @@ function EmployeeInfoView({
               fullWidth
               label="Current Address"
               name="currentAddress"
-              defaultValue={employee?.currentAddress || ""}
+              value={formData.currentAddress || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               multiline
               rows={2}
@@ -244,7 +313,8 @@ function EmployeeInfoView({
               label="Hire Date"
               name="hireDate"
               type="date"
-              defaultValue={employee?.hireDate || ""}
+              value={formData.hireDate || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -254,12 +324,17 @@ function EmployeeInfoView({
             <FormControl fullWidth disabled={isViewMode}>
               <InputLabel>Position</InputLabel>
               <Select
-                name="position"
-                defaultValue={employee?.positionEntity?.id || ""}
+                name="positionId"
+                value={formData.positionId || ""}
+                onChange={handleSelectChange}
                 label="Position"
               >
                 <MenuItem value="">Select Position</MenuItem>
-                {/* Add position options here */}
+                {positions.map((pos) => (
+                  <MenuItem key={pos.id} value={pos.id}>
+                    {pos.name}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -268,10 +343,9 @@ function EmployeeInfoView({
             <FormControl fullWidth disabled={isViewMode}>
               <InputLabel>Department</InputLabel>
               <Select
-                name="department"
-                defaultValue={[
-                  employee?.departments?.[0]?.department?.id || "",
-                ]}
+                name="departmentIds"
+                value={formData.departmentIds || []}
+                onChange={handleSelectChange}
                 label="Department"
                 multiple={true}
               >
@@ -285,17 +359,33 @@ function EmployeeInfoView({
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Suggested Role"
+              name="suggestedRole"
+              value={formData.suggestedRole || ""}
+              onChange={handleInputChange}
+              disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
+              helperText="Role suggested by manager for admin approval"
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth disabled={isViewMode}>
               <InputLabel>Employment Status</InputLabel>
               <Select
                 name="employmentStatus"
-                defaultValue={employee?.employmentStatus || ""}
+                value={formData.employmentStatus || ""}
+                onChange={handleSelectChange}
                 label="Employment Status"
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
-                <MenuItem value="On Leave">On Leave</MenuItem>
-                <MenuItem value="Terminated">Terminated</MenuItem>
+                <MenuItem value="ACTIVE">Active</MenuItem>
+                <MenuItem value="INACTIVE">Inactive</MenuItem>
+                <MenuItem value="ON_LEAVE">On Leave</MenuItem>
+                <MenuItem value="TERMINATED">Terminated</MenuItem>
+                <MenuItem value="RESIGNED">Resigned</MenuItem>
+                <MenuItem value="RETIRED">Retired</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -305,7 +395,8 @@ function EmployeeInfoView({
               <InputLabel>Contract Type</InputLabel>
               <Select
                 name="contractType"
-                defaultValue={employee?.contractType || ""}
+                value={formData.contractType || ""}
+                onChange={handleSelectChange}
                 label="Contract Type"
               >
                 <MenuItem value="Full-time">Full-time</MenuItem>
@@ -329,7 +420,8 @@ function EmployeeInfoView({
               fullWidth
               label="Emergency Contact Name"
               name="emergencyContactName"
-              defaultValue={employee?.emergencyContactName || ""}
+              value={formData.emergencyContactName || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -340,7 +432,8 @@ function EmployeeInfoView({
               fullWidth
               label="Emergency Contact Phone"
               name="emergencyContactPhone"
-              defaultValue={employee?.emergencyContactPhone || ""}
+              value={formData.emergencyContactPhone || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -351,7 +444,8 @@ function EmployeeInfoView({
               fullWidth
               label="Emergency Contact Relationship"
               name="emergencyContactRelationship"
-              defaultValue={employee?.emergencyContactRelationship || ""}
+              value={formData.emergencyContactRelationship || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -370,7 +464,8 @@ function EmployeeInfoView({
               fullWidth
               label="Bank Account Number"
               name="bankAccountNumber"
-              defaultValue={employee?.bankAccountNumber || ""}
+              value={formData.bankAccountNumber || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -381,7 +476,8 @@ function EmployeeInfoView({
               fullWidth
               label="Bank Name"
               name="bankName"
-              defaultValue={employee?.bankName || ""}
+              value={formData.bankName || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -392,7 +488,8 @@ function EmployeeInfoView({
               fullWidth
               label="Tax ID Number"
               name="taxId"
-              defaultValue={employee?.taxId || ""}
+              value={formData.taxId || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -403,7 +500,8 @@ function EmployeeInfoView({
               fullWidth
               label="Social Security Number"
               name="socialSecurityNumber"
-              defaultValue={employee?.socialSecurityNumber || ""}
+              value={formData.socialSecurityNumber || ""}
+              onChange={handleInputChange}
               disabled={isViewMode}
               InputLabelProps={{ shrink: true }}
             />
@@ -418,14 +516,7 @@ function EmployeeInfoView({
           {isViewMode ? "Close" : "Cancel"}
         </Button>
         {!isViewMode && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              // Handle save logic here
-              console.log("Save employee");
-            }}
-          >
+          <Button variant="contained" color="primary" onClick={handleSubmit}>
             {isAddMode ? "Create Employee" : "Save Changes"}
           </Button>
         )}

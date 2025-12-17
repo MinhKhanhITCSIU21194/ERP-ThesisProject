@@ -62,16 +62,16 @@ const Projects: React.FC = () => {
     }
   };
   useEffect(() => {
-    if (user?.employeeID) {
+    if (user?.employeeId) {
       dispatch(
         getProjectsByEmployeeId({
-          employeeId: user.employeeID,
+          employeeId: user.employeeId,
           isRecent: true,
           limit: 5,
         })
       );
     }
-  }, [dispatch, user?.employeeID]);
+  }, [dispatch, user?.employeeId]);
   return (
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 3 }}>

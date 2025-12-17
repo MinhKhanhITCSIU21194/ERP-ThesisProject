@@ -22,6 +22,11 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -43,7 +48,9 @@ import { selectProject } from "../../../../../redux/project/project.slice";
 import {
   getTaskById,
   updateTask,
+  deleteTask,
 } from "../../../../../services/project.service";
+import CustomButton from "../../../../components/Button";
 import {
   Task,
   TaskStatus,
@@ -52,15 +59,17 @@ import {
   TaskComment,
   TaskAttachment,
 } from "../../../../../data/project/project";
+import { UserPermission } from "../../../../../data/auth/role";
 import AuthContext from "../../../../../context/auth-provider";
 import axios from "../../../../../services/axios";
 import { useBreadcrumbLabel } from "../../../../components/breadcrumbs";
+import { selectAuth } from "../../../../../redux/auth/auth.slice";
 
 function TaskDetailView() {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user } = useAppSelector(selectAuth);
   const { isLoading } = useAppSelector(selectProject);
 
   const [task, setTask] = useState<Task | null>(null);
@@ -68,6 +77,8 @@ function TaskDetailView() {
   const [editedTask, setEditedTask] = useState<Partial<Task>>({});
   const [newComment, setNewComment] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false });
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
 
   // Update breadcrumb with task title
   useBreadcrumbLabel(task?.title || `Task #${id}`);
@@ -78,6 +89,19 @@ function TaskDetailView() {
         if (result.payload) {
           setTask(result.payload);
           setEditedTask(result.payload);
+          // Fetch project members for assignee dropdown
+          if (result.payload.sprint?.projectId) {
+            axios
+              .get(`/projects/${result.payload.sprint.projectId}`)
+              .then((res) => {
+                if (res.data.data.members) {
+                  setProjectMembers(res.data.data.members);
+                }
+              })
+              .catch((err) =>
+                console.error("Error fetching project members:", err)
+              );
+          }
         }
       });
     }
@@ -117,6 +141,28 @@ function TaskDetailView() {
 
   const handleFieldChange = (field: keyof Task, value: any) => {
     setEditedTask((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDelete = () => {
+    setConfirmDialog({ open: true });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!id) return;
+
+    try {
+      const result = await dispatch(deleteTask(id));
+      if (result.meta.requestStatus === "fulfilled") {
+        setConfirmDialog({ open: false });
+        alert("Task deleted successfully");
+        navigate(-1);
+      } else {
+        alert("Failed to delete task");
+      }
+    } catch (err) {
+      alert("Error deleting task");
+      console.error(err);
+    }
   };
 
   const handleAddComment = async () => {
@@ -294,13 +340,25 @@ function TaskDetailView() {
                 </Button>
               </>
             ) : (
-              <Button
-                startIcon={<Edit />}
-                variant="outlined"
-                onClick={handleEdit}
-              >
-                Edit Task
-              </Button>
+              <>
+                <Button
+                  startIcon={<Edit />}
+                  variant="outlined"
+                  onClick={handleEdit}
+                >
+                  Edit Task
+                </Button>
+                <CustomButton
+                  requiredPermission={UserPermission.PROJECT_MANAGEMENT}
+                  requiredAction="canDelete"
+                  userPermissions={user?.role?.permissions || []}
+                  startIcon={<Delete />}
+                  variant="contained"
+                  color="error"
+                  onClick={handleDelete}
+                  content="Delete"
+                />
+              </>
             )}
           </Box>
         </Box>
@@ -626,7 +684,49 @@ function TaskDetailView() {
                     >
                       Assignee
                     </Typography>
-                    {task.assignee ? (
+                    {isEditing ? (
+                      <FormControl fullWidth size="small">
+                        <Select
+                          value={editedTask.assignedTo || ""}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              "assignedTo",
+                              e.target.value || undefined
+                            )
+                          }
+                          displayEmpty
+                        >
+                          <MenuItem value="">
+                            <em>Unassigned</em>
+                          </MenuItem>
+                          {projectMembers.map((member) => (
+                            <MenuItem
+                              key={member.employee.employeeId}
+                              value={member.employee.employeeId}
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <Avatar
+                                  sx={{ width: 24, height: 24, fontSize: 12 }}
+                                >
+                                  {member.employee.firstName[0]}
+                                  {member.employee.lastName[0]}
+                                </Avatar>
+                                <Typography variant="body2">
+                                  {member.employee.firstName}{" "}
+                                  {member.employee.lastName}
+                                </Typography>
+                              </Box>
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    ) : task.assignee ? (
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -876,6 +976,32 @@ function TaskDetailView() {
           </Grid>
         </Grid>
       </Paper>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ open: false })}
+      >
+        <DialogTitle>Delete Task</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this task? This action cannot be
+            undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialog({ open: false })}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

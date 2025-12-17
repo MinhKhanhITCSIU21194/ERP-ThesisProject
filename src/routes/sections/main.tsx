@@ -15,6 +15,7 @@ import Projects from "../../pages/dashboard/sections/Projects/view/dashboard-hom
 import TaskDetailView from "../../pages/dashboard/sections/Projects/components/task-details-view";
 import ProjectListView from "../../pages/dashboard/sections/Projects/view/project-list-view";
 import ProjectDetailsView from "../../pages/dashboard/sections/Projects/components/project-details-view";
+import SprintBoardView from "../../pages/dashboard/sections/Projects/components/sprint-board-view";
 
 export const dashboardRoutes = [
   {
@@ -48,6 +49,10 @@ export const dashboardRoutes = [
       {
         path: "projects/tasks/:id",
         element: <TaskDetailView />,
+      },
+      {
+        path: "projects/sprints/board/:id",
+        element: <SprintBoardView />,
       },
       // Add more routes here as you create new pages
       // Example:

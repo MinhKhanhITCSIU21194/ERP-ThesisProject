@@ -37,19 +37,19 @@ function TaskListView({ filter }: TaskListViewProps) {
   const { user } = useAppSelector(selectAuth);
 
   useEffect(() => {
-    if (!user?.employeeID) {
+    if (!user?.employeeId) {
       return;
     }
     // Fetch all employee tasks (we'll filter client-side)
     dispatch(
       getTasksByEmployee({
-        employeeId: user.employeeID,
+        employeeId: user.employeeId,
         limit: 50,
       })
     ).then((result) => {
       console.log("getTasksByEmployee result:", result);
     });
-  }, [dispatch, user?.employeeID, filter]);
+  }, [dispatch, user?.employeeId, filter]);
 
   // Filter tasks based on the current tab
   const getFilteredTasks = (): Task[] => {

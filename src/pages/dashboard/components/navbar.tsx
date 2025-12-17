@@ -9,6 +9,9 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  useMediaQuery,
+  useTheme,
+  Tooltip,
 } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
@@ -119,110 +122,82 @@ const TABS = [
 ];
 
 const NavbarItem = React.memo(
-  ({ tab, user, location, hovered, openDropdown, handleTabClick }: any) => {
+  ({ tab, user, location, openDropdown, handleTabClick, isCollapsed }: any) => {
     const isActive = location.pathname.startsWith(
       tab.path || `/dashboard/${tab.name.toLowerCase()}`
     );
     const hasSubTabs = tab.subTabs && tab.subTabs.length > 0;
 
+    const buttonContent = (
+      <ListItemButton
+        component={tab.path ? Link : "div"}
+        to={tab.path}
+        onClick={
+          !tab.path ? () => handleTabClick(tab.name, hasSubTabs) : undefined
+        }
+        sx={{
+          px: isCollapsed ? 1 : 2,
+          py: 1.5,
+          borderRadius: 2,
+          bgcolor: isActive ? "#e0e0e0" : "transparent",
+          "&:hover": { bgcolor: "#d0d0d0" },
+          minHeight: 56,
+          width: "100%",
+          transition: "all 0.3s ease",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: isCollapsed ? "center" : "flex-start",
+        }}
+      >
+        <ListItemIcon
+          sx={{
+            minWidth: isCollapsed ? 0 : 40,
+            width: 40,
+            display: "flex",
+            justifyContent: "center",
+            color: "#222",
+          }}
+        >
+          <tab.icon />
+        </ListItemIcon>
+        {!isCollapsed && (
+          <Box
+            sx={{
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              flex: 1,
+            }}
+          >
+            <ListItemText
+              primary={tab.name}
+              sx={{ color: "#222", fontWeight: 600, m: 0 }}
+            />
+            {hasSubTabs &&
+              (openDropdown === tab.name ? (
+                <ArrowDropDownIcon sx={{ ml: 1 }} />
+              ) : (
+                <ArrowRightIcon sx={{ ml: 1 }} />
+              ))}
+          </Box>
+        )}
+      </ListItemButton>
+    );
+
     return (
       <Box>
         <ListItem disablePadding>
-          {tab.path ? (
-            <ListItemButton
-              component={Link}
-              to={tab.path}
-              sx={{
-                px: 2,
-                py: 1.5,
-                borderRadius: 2,
-                bgcolor: isActive ? "#e0e0e0" : "transparent",
-                "&:hover": { bgcolor: "#d0d0d0" },
-                minHeight: 56,
-                width: "100%",
-                transition: "background-color 0.15s ease-out",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 40,
-                  width: 40,
-                  display: "flex",
-                  justifyContent: "center",
-                  color: "#222",
-                }}
-              >
-                <tab.icon />
-              </ListItemIcon>
-              <Box
-                sx={{
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  display: "flex",
-                  alignItems: "center",
-                  flex: 1,
-                }}
-              >
-                <ListItemText
-                  primary={tab.name}
-                  sx={{ color: "#222", fontWeight: 600, m: 0 }}
-                />
-              </Box>
-            </ListItemButton>
+          {isCollapsed ? (
+            <Tooltip title={tab.name} placement="right" arrow>
+              {buttonContent}
+            </Tooltip>
           ) : (
-            <ListItemButton
-              onClick={() => handleTabClick(tab.name, hasSubTabs)}
-              sx={{
-                px: 2,
-                py: 1.5,
-                borderRadius: 2,
-                bgcolor: isActive ? "#e0e0e0" : "transparent",
-                "&:hover": { bgcolor: "#d0d0d0" },
-                minHeight: 56,
-                width: "100%",
-                transition: "background-color 0.15s ease-out",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 40,
-                  width: 40,
-                  display: "flex",
-                  justifyContent: "center",
-                  color: "#222",
-                }}
-              >
-                <tab.icon />
-              </ListItemIcon>
-              <Box
-                sx={{
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  display: "flex",
-                  alignItems: "center",
-                  flex: 1,
-                }}
-              >
-                <ListItemText
-                  primary={tab.name}
-                  sx={{ color: "#222", fontWeight: 600, m: 0 }}
-                />
-                {hasSubTabs &&
-                  (openDropdown === tab.name ? (
-                    <ArrowDropDownIcon sx={{ ml: 1 }} />
-                  ) : (
-                    <ArrowRightIcon sx={{ ml: 1 }} />
-                  ))}
-              </Box>
-            </ListItemButton>
+            buttonContent
           )}
         </ListItem>
-        {/* Dropdown for sub-tabs inside navbar */}
-        {hasSubTabs && (
+        {/* Dropdown for sub-tabs inside navbar - only show when expanded */}
+        {hasSubTabs && !isCollapsed && (
           <Collapse in={openDropdown === tab.name} timeout="auto" unmountOnExit>
             <List sx={{ pl: 2, bgcolor: "#c0c0c0" }}>
               {tab.subTabs
@@ -272,6 +247,10 @@ function Navbar() {
   const { user } = useAppSelector(selectAuth);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const location = useLocation();
+  const theme = useTheme();
+
+  // Collapse navbar on screens smaller than 1280px (lg breakpoint)
+  const isCollapsed = useMediaQuery(theme.breakpoints.down("md"));
 
   const handleTabClick = useCallback((tabName: string, hasSubTabs: boolean) => {
     if (hasSubTabs) {
@@ -295,13 +274,14 @@ function Navbar() {
       sx={{
         position: "relative",
         background: "#b0b0b0",
-        width: 180,
-        minWidth: 180,
+        width: isCollapsed ? 72 : 180,
+        minWidth: isCollapsed ? 72 : 180,
         flexShrink: 0,
         zIndex: 100,
         boxShadow: 2,
         overflowX: "hidden",
         overflowY: "auto",
+        transition: "width 0.3s ease, min-width 0.3s ease",
         // Reduce browser reflow cost
         contain: "layout style paint",
       }}
@@ -321,9 +301,9 @@ function Navbar() {
               tab={tab}
               user={user}
               location={location}
-              hovered={true}
               openDropdown={openDropdown}
               handleTabClick={handleTabClick}
+              isCollapsed={isCollapsed}
             />
           ))}
         </List>

@@ -16,8 +16,13 @@ import {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  exportEmployees,
+  importEmployees,
 } from "../../../../../services/employee.service";
-import { selectEmployee } from "../../../../../redux/employee/employee.slice";
+import {
+  selectEmployee,
+  selectSpecificEmployee,
+} from "../../../../../redux/employee/employee.slice";
 import { Employee } from "../../../../../data/employee/employee";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -34,6 +39,7 @@ import { selectPosition } from "../../../../../redux/admin/position.slice";
 import { FilterSearchField } from "./employee/components/FilterSearchField";
 import { useRouter } from "../../../../../routes/hooks/useRouter";
 import ConfirmationDialog from "../../../../components/ConfirmationWindow";
+import EmployeeImportModal from "./employee/employee-import-modal";
 
 function EmployeeListView() {
   const router = useRouter();
@@ -50,6 +56,7 @@ function EmployeeListView() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // State for pagination
   const [paginationModel, setPaginationModel] = React.useState({
@@ -112,10 +119,10 @@ function EmployeeListView() {
       params.search = searchTerm;
     }
     if (departmentFilter) {
-      params.department = departmentFilter;
+      params.departmentId = departmentFilter;
     }
     if (positionFilter) {
-      params.position = positionFilter;
+      params.positionId = positionFilter;
     }
 
     dispatch(getEmployeeList(params));
@@ -166,7 +173,7 @@ function EmployeeListView() {
         // Update existing employee
         await dispatch(
           updateEmployee({
-            id: parseInt(employee.employeeId),
+            id: employee.employeeId,
             data: employee,
           })
         ).unwrap();
@@ -182,8 +189,8 @@ function EmployeeListView() {
         pageSize: paginationModel.pageSize,
       };
       if (searchTerm) params.search = searchTerm;
-      if (departmentFilter) params.department = departmentFilter;
-      if (positionFilter) params.position = positionFilter;
+      if (departmentFilter) params.departmentId = departmentFilter;
+      if (positionFilter) params.positionId = positionFilter;
       dispatch(getEmployeeList(params));
     } catch (error: any) {
       alert(`Failed to save employee: ${error}`);
@@ -202,16 +209,18 @@ function EmployeeListView() {
       message: `Are you sure you want to delete employee "${employee.firstName} ${employee.lastName}"? This action will soft-delete the employee.`,
       onConfirm: async () => {
         try {
-          await dispatch(
-            deleteEmployee(parseInt(employee.employeeId!))
-          ).unwrap();
+          if (!employee.employeeId) {
+            alert("Invalid employee ID");
+            return;
+          }
+          await dispatch(deleteEmployee(employee.employeeId)).unwrap();
           const params: any = {
             pageIndex: paginationModel.page,
             pageSize: paginationModel.pageSize,
           };
           if (searchTerm) params.search = searchTerm;
-          if (departmentFilter) params.department = departmentFilter;
-          if (positionFilter) params.position = positionFilter;
+          if (departmentFilter) params.departmentId = departmentFilter;
+          if (positionFilter) params.positionId = positionFilter;
           dispatch(getEmployeeList(params));
           alert("Employee deleted successfully");
         } catch (error: any) {
@@ -252,17 +261,15 @@ function EmployeeListView() {
                   );
 
           await Promise.all(
-            idsToDelete.map((id) =>
-              dispatch(deleteEmployee(parseInt(id))).unwrap()
-            )
+            idsToDelete.map((id) => dispatch(deleteEmployee(id)).unwrap())
           );
           const params: any = {
             pageIndex: paginationModel.page,
             pageSize: paginationModel.pageSize,
           };
           if (searchTerm) params.search = searchTerm;
-          if (departmentFilter) params.department = departmentFilter;
-          if (positionFilter) params.position = positionFilter;
+          if (departmentFilter) params.departmentId = departmentFilter;
+          if (positionFilter) params.positionId = positionFilter;
           dispatch(getEmployeeList(params));
           alert(`${count} employee(s) deleted successfully`);
         } catch (error: any) {
@@ -273,14 +280,43 @@ function EmployeeListView() {
       },
     });
   };
-  const importEmployees = (employees: Employee[]) => {
-    console.log("Importing employees:", employees);
-    // Add your import logic here
+  const handleImportClick = () => {
+    setImportModalOpen(true);
   };
 
-  const exportEmployees = async () => {
-    console.log("Exporting employees:", employeeList);
-    // Add your export logic here
+  const handleImport = async (file: File) => {
+    try {
+      const result = await importEmployees(file);
+      // Refresh employee list after successful import
+      const params: any = {
+        pageIndex: paginationModel.page,
+        pageSize: paginationModel.pageSize,
+      };
+      if (searchTerm) params.search = searchTerm;
+      if (departmentFilter) params.departmentId = departmentFilter;
+      if (positionFilter) params.positionId = positionFilter;
+      dispatch(getEmployeeList(params));
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const params: any = {
+        pageIndex: paginationModel.page,
+        pageSize: paginationModel.pageSize,
+      };
+      if (searchTerm) params.search = searchTerm;
+      if (departmentFilter) params.departmentId = departmentFilter;
+      if (positionFilter) params.positionId = positionFilter;
+
+      await exportEmployees(params);
+      alert("Export successful");
+    } catch (error: any) {
+      alert(`Failed to export employees: ${error.message}`);
+    }
   };
 
   // Use useMemo to only recalculate when selection actually changes
@@ -322,7 +358,7 @@ function EmployeeListView() {
       minWidth: 130,
       valueGetter: (value: any, row: any) => {
         // DataGrid valueGetter receives (value, row) as parameters
-        return row?.positionEntity?.name || row?.position || "N/A";
+        return row?.positionEntity?.name || "N/A";
       },
     },
     {
@@ -335,15 +371,14 @@ function EmployeeListView() {
         if (row?.departments && Array.isArray(row.departments)) {
           const activeDepts = row.departments
             .filter((ed: any) => ed.isActive && ed.isPrimary)
-            .map((ed: any) => ed.department?.name || ed.department)
+            .map((ed: any) => ed.department?.name)
             .filter(Boolean);
 
           if (activeDepts.length > 0) {
             return activeDepts.join(", ");
           }
         }
-        // Fallback to legacy department field
-        return row?.department || "N/A";
+        return "N/A";
       },
     },
     {
@@ -360,9 +395,9 @@ function EmployeeListView() {
     },
     {
       field: "employmentStatus",
-      headerName: "Employment Status",
+      headerName: "Status",
       flex: 1,
-      minWidth: 130,
+      width: 100,
     },
     {
       field: "contractType",
@@ -426,11 +461,12 @@ function EmployeeListView() {
               <Tooltip title="Contract" arrow>
                 <IconButton
                   size="small"
-                  onClick={() =>
+                  onClick={() => {
+                    dispatch(selectSpecificEmployee(employee));
                     router.push(
                       `/dashboard/employee/contract/${employee.employeeId}`
-                    )
-                  }
+                    );
+                  }}
                   sx={{
                     top: 5,
                     "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" },
@@ -507,7 +543,7 @@ function EmployeeListView() {
               content="Import"
               variant="outlined"
               color="primary"
-              onClick={() => importEmployees(employeeList)}
+              onClick={handleImportClick}
             />
             <CustomButton
               requiredPermission={UserPermission.EMPLOYEE_MANAGEMENT}
@@ -516,7 +552,7 @@ function EmployeeListView() {
               content="Export"
               variant="outlined"
               color="primary"
-              onClick={exportEmployees}
+              onClick={handleExport}
             />
             <CustomButton
               requiredPermission={UserPermission.EMPLOYEE_MANAGEMENT}
@@ -561,6 +597,13 @@ function EmployeeListView() {
         severity="error"
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog({ ...confirmDialog, open: false })}
+      />
+
+      {/* Import Modal */}
+      <EmployeeImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={handleImport}
       />
     </>
   );

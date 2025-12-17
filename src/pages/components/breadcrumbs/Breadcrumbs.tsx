@@ -27,8 +27,16 @@ const routeConfig: RouteConfig = {
 
   // Projects
   "/dashboard/projects": { label: "Projects", path: "/dashboard/projects" },
+  "/dashboard/projects/list": {
+    label: "All Projects",
+    path: "/dashboard/projects/list",
+  },
+  "/dashboard/projects/create": {
+    label: "Create Project",
+    path: "/dashboard/projects/create",
+  },
   "/dashboard/projects/:id": (params) => ({
-    label: `Project #${params.id}`,
+    label: `Project Details`,
     path: `/dashboard/projects/${params.id}`,
   }),
   "/dashboard/projects/tasks": {
@@ -36,8 +44,12 @@ const routeConfig: RouteConfig = {
     path: "/dashboard/projects/tasks",
   },
   "/dashboard/projects/tasks/:id": (params) => ({
-    label: `Task #${params.name}`,
+    label: `Task Details`,
     path: `/dashboard/projects/tasks/${params.id}`,
+  }),
+  "/dashboard/projects/sprints/board/:id": (params) => ({
+    label: `Sprint Board`,
+    path: `/dashboard/projects/sprints/board/${params.id}`,
   }),
 
   // Employee Management
@@ -50,7 +62,7 @@ const routeConfig: RouteConfig = {
     path: "/dashboard/employee/contract",
   },
   "/dashboard/employee/contract/:id": (params) => ({
-    label: `Contract #${params.id}`,
+    label: `Contract Details`,
     path: `/dashboard/employee/contract/${params.id}`,
   }),
   "/dashboard/employee/leave-requests": {
@@ -63,6 +75,8 @@ const routeConfig: RouteConfig = {
   },
 
   // Admin Settings
+  "/admin": { label: "Admin", path: "/admin" },
+  "/admin/settings": { label: "Settings", path: "/admin/settings" },
   "/admin/settings/department": {
     label: "Departments",
     path: "/admin/settings/department",
@@ -148,14 +162,17 @@ export const Breadcrumbs: React.FC = () => {
     currentPath += `/${segment}`;
     const config = matchRoute(currentPath);
 
-    // Skip if already added (avoid duplicates) or if no config found
-    if (config && !breadcrumbs.some((b) => b.path === config.path)) {
-      // Check for custom override label
-      const overrideLabel = getBreadcrumbOverride(currentPath);
-      if (overrideLabel) {
-        breadcrumbs.push({ ...config, label: overrideLabel });
-      } else {
-        breadcrumbs.push(config);
+    // Only add if config exists (valid route)
+    if (config) {
+      // Skip if already added (avoid duplicates)
+      if (!breadcrumbs.some((b) => b.path === config.path)) {
+        // Check for custom override label
+        const overrideLabel = getBreadcrumbOverride(currentPath);
+        if (overrideLabel) {
+          breadcrumbs.push({ ...config, label: overrideLabel });
+        } else {
+          breadcrumbs.push(config);
+        }
       }
     }
   });

@@ -10,6 +10,7 @@ interface SprintListViewProps {
   sprints: Sprint[];
   onEdit?: (sprint: Sprint) => void;
   onDelete?: (sprint: Sprint) => void;
+  onRowClick?: (sprint: Sprint) => void;
   canEdit?: boolean;
   canDelete?: boolean;
 }
@@ -18,6 +19,7 @@ function SprintListView({
   sprints,
   onEdit,
   onDelete,
+  onRowClick,
   canEdit = false,
   canDelete = false,
 }: SprintListViewProps) {
@@ -205,6 +207,11 @@ function SprintListView({
       checkboxSelection={false}
       loading={false}
       getRowId={(row) => row.sprintId}
+      onRowClick={(params) => {
+        if (onRowClick) {
+          onRowClick(params.row as Sprint);
+        }
+      }}
     />
   );
 }

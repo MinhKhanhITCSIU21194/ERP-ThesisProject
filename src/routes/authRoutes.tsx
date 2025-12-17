@@ -3,6 +3,7 @@ import SignIn from "../pages/auth/sign-in";
 import ForgotPassword from "../pages/auth/forgot-password";
 import SetPassword from "../pages/auth/set-password";
 import EmailVerification from "../pages/auth/email-verification";
+import EmployeeSetup from "../pages/auth/employee-setup/employee-setup";
 
 export const authRoutes = [
   {
@@ -28,6 +29,10 @@ export const authRoutes = [
       {
         path: "reset-password",
         element: <SetPassword />,
+      },
+      {
+        path: "employee-setup/:token",
+        element: <EmployeeSetup />,
       },
     ],
   },

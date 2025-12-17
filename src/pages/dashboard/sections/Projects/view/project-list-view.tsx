@@ -14,8 +14,14 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { GridColDef } from "@mui/x-data-grid";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
-import { selectProject } from "../../../../../redux/project/project.slice";
-import { getProjectsByEmployeeId } from "../../../../../services/project.service";
+import {
+  resetProjectState,
+  selectProject,
+} from "../../../../../redux/project/project.slice";
+import {
+  getProjectsByEmployeeId,
+  deleteProject,
+} from "../../../../../services/project.service";
 import {
   Project,
   ProjectStatus,
@@ -28,6 +34,7 @@ import CustomButton from "../../../../components/Button";
 import { UserPermission } from "../../../../../data/auth/role";
 import { selectAuth } from "../../../../../redux/auth/auth.slice";
 import ConfirmationDialog from "../../../../components/ConfirmationWindow";
+import { Tooltip as MuiTooltip } from "@mui/material";
 
 function ProjectListView() {
   const { user } = useAppSelector(selectAuth);
@@ -52,22 +59,24 @@ function ProjectListView() {
 
   useEffect(() => {
     // Fetch all projects for the user
-    if (user?.employeeID) {
+    if (user?.employeeId) {
       dispatch(
-        getProjectsByEmployeeId({ employeeId: user.employeeID, limit: 100 })
+        getProjectsByEmployeeId({ employeeId: user.employeeId, limit: 100 })
       );
     }
-  }, [dispatch, user?.employeeID]);
+  }, [dispatch, user?.employeeId]);
 
   const handleSearch = (search: string) => {
     setSearchTerm(search);
   };
 
-  const handleAddNewProject = () => {
+  const handleAddNewProject = async () => {
+    dispatch(resetProjectState());
     navigate(paths.project.create);
   };
 
   const handleEdit = (project: Project) => {
+    dispatch(resetProjectState());
     // Navigate to edit project page or open edit modal
     navigate(paths.project.detail(project.projectId));
   };
@@ -79,11 +88,20 @@ function ProjectListView() {
       message: `Are you sure you want to delete the project "${project.name}"? This action cannot be undone.`,
       onConfirm: async () => {
         try {
-          // TODO: Import and dispatch deleteProject action
-          // await dispatch(deleteProject(project.projectId)).unwrap();
-          // dispatch(getProjectsByEmployeeId({ employeeId: user!.employeeID, limit: 100 }));
-          console.log("Delete project:", project);
-          alert("Project deletion not yet implemented");
+          const result = await dispatch(deleteProject(project.projectId));
+          if (result.meta.requestStatus === "fulfilled") {
+            // Refresh the project list after successful deletion
+            if (user?.employeeId) {
+              dispatch(
+                getProjectsByEmployeeId({
+                  employeeId: user.employeeId,
+                  limit: 100,
+                })
+              );
+            }
+          } else {
+            alert("Failed to delete project");
+          }
         } catch (err: any) {
           alert(err || "Failed to delete project");
         } finally {
@@ -239,42 +257,42 @@ function ProjectListView() {
       renderCell: (params) => {
         const project = params.row as Project;
 
-        // Check permissions
-        const projectPermission = user?.role?.permissions?.find(
-          (p) => p.permission === UserPermission.PROJECT_MANAGEMENT
-        );
-
-        const canUpdate = projectPermission?.canUpdate || false;
-        const canDelete = projectPermission?.canDelete || false;
-
         return (
           <Box sx={{ display: "inline-flex", gap: 0.5 }}>
-            {canUpdate && (
-              <Tooltip title="Edit Project" arrow>
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEdit(project);
-                  }}
-                  sx={{
-                    top: 5,
-                    "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" },
-                  }}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-            {canDelete && (
-              <Tooltip title="Delete Project" arrow>
+            <MuiTooltip title="Edit Project" arrow>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(project);
+                }}
+                sx={{
+                  top: 5,
+                  "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" },
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </MuiTooltip>
+            <MuiTooltip title="Delete Project" arrow>
+              <div>
                 <IconButton
                   size="small"
                   color="error"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(project);
+                    const projectPermission = user?.role?.permissions?.find(
+                      (p) => p.permission === UserPermission.PROJECT_MANAGEMENT
+                    );
+                    if (projectPermission?.canDelete) {
+                      handleDelete(project);
+                    }
                   }}
+                  disabled={
+                    !user?.role?.permissions?.find(
+                      (p) => p.permission === UserPermission.PROJECT_MANAGEMENT
+                    )?.canDelete
+                  }
                   sx={{
                     top: 5,
                     "&:hover": { backgroundColor: "rgba(211, 47, 47, 0.1)" },
@@ -282,8 +300,8 @@ function ProjectListView() {
                 >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
-              </Tooltip>
-            )}
+              </div>
+            </MuiTooltip>
           </Box>
         );
       },

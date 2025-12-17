@@ -42,10 +42,10 @@ function LeaveRequestListView() {
   }>({ open: false, request: null });
 
   useEffect(() => {
-    if (user?.employeeID) {
+    if (user?.employeeId) {
       dispatch(
         getMyLeaveRequests({
-          employeeId: user.employeeID,
+          employeeId: user.employeeId,
           limit: paginationModel.pageSize,
           offset: paginationModel.page * paginationModel.pageSize,
         })
@@ -62,20 +62,20 @@ function LeaveRequestListView() {
   };
 
   const handleCancelConfirm = async () => {
-    if (!actionDialog.request || !user?.employeeID) return;
+    if (!actionDialog.request || !user?.employeeId) return;
 
     try {
       await dispatch(
         cancelLeaveRequest({
           id: actionDialog.request.leaveRequestId,
-          employeeId: user.employeeID,
+          employeeId: user.employeeId,
         })
       ).unwrap();
 
       // Refetch the list to get fresh data from backend
       dispatch(
         getMyLeaveRequests({
-          employeeId: user.employeeID,
+          employeeId: user.employeeId,
           limit: paginationModel.pageSize,
           offset: paginationModel.page * paginationModel.pageSize,
         })

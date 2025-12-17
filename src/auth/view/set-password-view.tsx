@@ -25,7 +25,6 @@ function SetPasswordView() {
     }
   }, []);
 
-  // Handle email input change and check if email exists
   const handlePasswordChange = async (password: string) => {
     setState((prev) => ({ ...prev, newPassword: password }));
     // Use a regular expression to check password strength

@@ -37,6 +37,7 @@ export type Employee = {
   userId: string;
   id: string;
   employeeId?: string; // Backend uses employeeId as primary key
+  employeeCode?: string; // Employee code like "EMP0001"
   email: string;
   gender?: string;
   phoneNumber?: string;
@@ -70,6 +71,7 @@ export type Employee = {
   roles: Role[];
   departmentIds: string[];
   skills?: EmployeeSkill[];
+  suggestedRole?: Role;
   educations?: EmployeeEducations[];
 };
 

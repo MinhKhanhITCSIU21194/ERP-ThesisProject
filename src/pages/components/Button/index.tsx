@@ -41,6 +41,14 @@ function CustomButton({
       return true;
     }
 
+    // If no permissions array provided, deny access
+    if (!userPermissions || userPermissions.length === 0) {
+      console.warn(
+        `No permissions found for user. Required: ${requiredPermission}`
+      );
+      return false;
+    }
+
     // Find the permission that matches the required permission
     const matchingPermission = userPermissions.find(
       (permission) => permission.permission === requiredPermission
@@ -48,6 +56,9 @@ function CustomButton({
 
     // If permission not found, deny access
     if (!matchingPermission) {
+      console.warn(
+        `Permission ${requiredPermission} not found in user permissions`
+      );
       return false;
     }
 
@@ -57,7 +68,13 @@ function CustomButton({
     }
 
     // Check if the specific action is allowed (e.g., canCreate, canUpdate, canDelete)
-    return matchingPermission[requiredAction] === true;
+    const hasAction = matchingPermission[requiredAction] === true;
+    if (!hasAction) {
+      console.warn(
+        `Action ${requiredAction} not allowed for ${requiredPermission}`
+      );
+    }
+    return hasAction;
   }, [requiredPermission, requiredAction, userPermissions]);
 
   // Don't render button if permission check fails

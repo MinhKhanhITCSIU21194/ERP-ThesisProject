@@ -48,9 +48,9 @@ function RequestLeaveView() {
   }, [dispatch]);
 
   const handleSubmit = async () => {
-    if (!user?.employeeID || !startDate || !endDate || !approverId) {
+    if (!user?.employeeId || !startDate || !endDate || !approverId) {
       console.error("Missing required fields:", {
-        employeeID: user?.employeeID,
+        employeeId: user?.employeeId,
         startDate,
         endDate,
         approverId,
@@ -61,7 +61,7 @@ function RequestLeaveView() {
     try {
       const result = await dispatch(
         createLeaveRequest({
-          employeeId: user.employeeID,
+          employeeId: user.employeeId,
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
           leavePeriodStartDate,
@@ -74,10 +74,10 @@ function RequestLeaveView() {
       ).unwrap();
 
       // Refetch the leave requests list
-      if (user?.employeeID) {
+      if (user?.employeeId) {
         dispatch(
           getMyLeaveRequests({
-            employeeId: user.employeeID,
+            employeeId: user.employeeId,
             limit: 10,
             offset: 0,
           })

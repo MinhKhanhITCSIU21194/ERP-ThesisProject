@@ -21,7 +21,10 @@ import {
   Close as CloseIcon,
 } from "@mui/icons-material";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
-import { selectProject } from "../../../../../redux/project/project.slice";
+import {
+  resetProjectState,
+  selectProject,
+} from "../../../../../redux/project/project.slice";
 import { selectAuth } from "../../../../../redux/auth/auth.slice";
 import {
   getProjectById,
@@ -45,16 +48,13 @@ import {
   Project,
 } from "../../../../../data/project/project";
 import { paths } from "../../../../../routes/paths";
-import SprintListView from "./sprint-list-view";
+import SprintListView from "../view/sprint-list-view";
+import ConfirmationDialog from "../../../../components/ConfirmationWindow";
 import dayjs, { Dayjs } from "dayjs";
 import CustomDatePicker from "../../../../components/DatePicker";
 import { UserPermission } from "../../../../../data/auth/role";
 import { Employee } from "../../../../../data/employee/employee";
-import {
-  getEmployeesByDepartment,
-  getEmployeeById,
-} from "../../../../../services/employee/employee.service";
-
+import { getEmployeesByManager } from "../../../../../services/employee.service";
 function ProjectDetailsView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -99,12 +99,20 @@ function ProjectDetailsView() {
     ProjectMemberRole.DEVELOPER
   );
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
-  const [userDepartment, setUserDepartment] = useState<string>("");
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState<string>("");
+  const [sprintDeleteConfirm, setSprintDeleteConfirm] = useState<{
+    open: boolean;
+    sprint: Sprint | null;
+  }>({
+    open: false,
+    sprint: null,
+  });
 
   // Load project data if in edit mode
   useEffect(() => {
     if (isEditMode && id) {
+      // Reset success state when loading a different project
+      dispatch(resetProjectState());
       dispatch(getProjectById(id));
       dispatch(getSprintsByProject({ projectId: id, limit: 100 }));
     }
@@ -126,89 +134,57 @@ function ProjectDetailsView() {
     };
   }, [sprintDebounceTimer]);
 
-  // Load employees from project manager's department
+  // Load employees from manager's department
   useEffect(() => {
     const loadDepartmentEmployees = async () => {
-      // In edit mode, use project manager's department
-      if (isEditMode && currentProject?.projectManager?.employeeId) {
-        try {
-          console.log(
-            "Fetching project manager data:",
-            currentProject.projectManager.employeeId
-          );
-          const managerData = await getEmployeeById(
-            currentProject.projectManager.employeeId
-          );
-          console.log("Manager data received:", managerData);
+      const managerId = isEditMode
+        ? currentProject?.projectManager?.employeeId
+        : user?.employeeId;
 
-          if (managerData.success && managerData.data.departments?.[0]) {
-            const department = managerData.data.departments[0].department.name;
-            console.log("Manager's department:", department);
-            setUserDepartment(department);
+      if (!managerId) return;
 
-            // Load employees from manager's department
-            console.log("Fetching employees from department:", department);
-            const response = await getEmployeesByDepartment({
-              department,
-              pageSize: 100,
-            });
-            console.log("Employees fetched:", response);
-            setAvailableEmployees(response.data);
-          }
-        } catch (error) {
-          console.error("Error loading manager's department employees:", error);
-        }
-      }
-      // In create mode, use current user's department
-      else if (!isEditMode && user?.employeeID) {
-        try {
-          console.log("Fetching employee data for:", user.employeeID);
-          const employeeData = await getEmployeeById(user.employeeID);
-          console.log("Employee data received:", employeeData);
-
-          if (employeeData.success && employeeData.data.departments?.[0]) {
-            const department = employeeData.data.departments[0].department.name;
-            console.log("User department:", department);
-            setUserDepartment(department);
-
-            // Load initial employees
-            console.log("Fetching employees from department:", department);
-            const response = await getEmployeesByDepartment({
-              department,
-              pageSize: 100,
-            });
-            console.log("Employees fetched:", response);
-            setAvailableEmployees(response.data);
-          } else {
-            console.warn("No department found for user");
-          }
-        } catch (error) {
-          console.error("Error loading employees:", error);
-        }
+      try {
+        const response = await getEmployeesByManager(managerId, {
+          pageSize: 100,
+        });
+        setAvailableEmployees(response.data || []);
+      } catch (error) {
+        console.error("Error loading employees:", error);
+        setAvailableEmployees([]);
       }
     };
     loadDepartmentEmployees();
-  }, [user?.employeeID, isEditMode, currentProject?.projectManager]);
+  }, [user?.employeeId, isEditMode, currentProject?.projectManager]);
 
-  // Fetch employees when search term or department changes (with debounce)
+  // Fetch employees when search term changes (with debounce)
   useEffect(() => {
-    if (!userDepartment) return;
+    const managerId = isEditMode
+      ? currentProject?.projectManager?.employeeId
+      : user?.employeeId;
+
+    if (!managerId) return;
+    if (!employeeSearchTerm.trim()) return;
 
     const timer = setTimeout(async () => {
       try {
-        const response = await getEmployeesByDepartment({
-          department: userDepartment,
+        const response = await getEmployeesByManager(managerId, {
           pageSize: 100,
-          search: employeeSearchTerm || undefined,
+          search: employeeSearchTerm,
         });
-        setAvailableEmployees(response.data);
+        setAvailableEmployees(response.data || []);
       } catch (error) {
         console.error("Error loading employees:", error);
+        setAvailableEmployees([]);
       }
-    }, 500); // 500ms debounce
+    }, 800);
 
     return () => clearTimeout(timer);
-  }, [userDepartment, employeeSearchTerm]);
+  }, [
+    employeeSearchTerm,
+    isEditMode,
+    currentProject?.projectManager,
+    user?.employeeId,
+  ]);
 
   // Populate form when project data is loaded
   useEffect(() => {
@@ -246,7 +222,7 @@ function ProjectDetailsView() {
     if (success && !isEditMode) {
       setTimeout(() => {
         navigate(paths.project.list);
-      }, 1500);
+      }, 2000);
     }
   }, [success, isEditMode, navigate]);
 
@@ -363,14 +339,29 @@ function ProjectDetailsView() {
     console.log("Edit sprint:", sprint);
   };
 
+  const handleSprintViewBoard = (sprint: Sprint) => {
+    navigate(paths.project.board(sprint.sprintId));
+  };
+
   const handleSprintDelete = async (sprint: Sprint) => {
-    if (
-      window.confirm(`Are you sure you want to delete sprint "${sprint.name}"?`)
-    ) {
-      await dispatch(deleteSprint(sprint.sprintId));
+    setSprintDeleteConfirm({
+      open: true,
+      sprint,
+    });
+  };
+
+  const handleSprintDeleteConfirm = async () => {
+    if (!sprintDeleteConfirm.sprint) return;
+
+    try {
+      await dispatch(deleteSprint(sprintDeleteConfirm.sprint.sprintId));
       if (id) {
         dispatch(getSprintsByProject({ projectId: id, limit: 100 }));
       }
+      setSprintDeleteConfirm({ open: false, sprint: null });
+    } catch (error) {
+      console.error("Error deleting sprint:", error);
+      setSprintDeleteConfirm({ open: false, sprint: null });
     }
   };
 
@@ -378,7 +369,7 @@ function ProjectDetailsView() {
     if (!selectedEmployee) return;
 
     // Find the employee object from availableEmployees
-    const employee = availableEmployees.find(
+    const employee = availableEmployees?.find(
       (e) => e.employeeId === selectedEmployee
     );
     if (!employee) return;
@@ -467,98 +458,100 @@ function ProjectDetailsView() {
 
         {/* Project Form */}
         <Grid container spacing={3}>
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Project Name"
-              required
-              value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              error={!!formErrors.name}
-              helperText={formErrors.name}
-              disabled={isEditMode && !canUpdate}
-            />
+          {/* Left Column: Name and Description */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                fullWidth
+                label="Project Name"
+                required
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                error={!!formErrors.name}
+                helperText={formErrors.name}
+                disabled={isEditMode && !canUpdate}
+              />
+              <TextField
+                fullWidth
+                label="Description"
+                multiline
+                rows={4}
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                disabled={isEditMode && !canUpdate}
+              />
+            </Box>
           </Grid>
 
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Description"
-              multiline
-              rows={4}
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              disabled={isEditMode && !canUpdate}
-            />
-          </Grid>
+          {/* Right Column: Status, Priority, and Dates */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                fullWidth
+                select
+                label="Status"
+                value={formData.status}
+                onChange={(e) =>
+                  handleInputChange("status", e.target.value as ProjectStatus)
+                }
+                disabled={isEditMode && !canUpdate}
+              >
+                {Object.values(ProjectStatus).map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {status.replace("_", " ")}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth
+                select
+                label="Priority"
+                value={formData.priority}
+                onChange={(e) =>
+                  handleInputChange(
+                    "priority",
+                    e.target.value as ProjectPriority
+                  )
+                }
+                disabled={isEditMode && !canUpdate}
+              >
+                {Object.values(ProjectPriority).map((priority) => (
+                  <MenuItem key={priority} value={priority}>
+                    {priority}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Box sx={{ display: "flex", flexDirection: "row", gap: 2 }}>
+                <CustomDatePicker
+                  label="Start Date"
+                  value={formData.startDate ? dayjs(formData.startDate) : null}
+                  onChange={(newVal: Dayjs | null) =>
+                    handleInputChange(
+                      "startDate",
+                      newVal ? newVal.format("YYYY-MM-DD") : ""
+                    )
+                  }
+                  disabled={isEditMode && !canUpdate}
+                />
 
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              select
-              label="Status"
-              value={formData.status}
-              onChange={(e) =>
-                handleInputChange("status", e.target.value as ProjectStatus)
-              }
-              disabled={isEditMode && !canUpdate}
-            >
-              {Object.values(ProjectStatus).map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status.replace("_", " ")}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              select
-              label="Priority"
-              value={formData.priority}
-              onChange={(e) =>
-                handleInputChange("priority", e.target.value as ProjectPriority)
-              }
-              disabled={isEditMode && !canUpdate}
-            >
-              {Object.values(ProjectPriority).map((priority) => (
-                <MenuItem key={priority} value={priority}>
-                  {priority}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <CustomDatePicker
-              label="Start Date"
-              value={formData.startDate ? dayjs(formData.startDate) : null}
-              onChange={(newVal: Dayjs | null) =>
-                handleInputChange(
-                  "startDate",
-                  newVal ? newVal.format("YYYY-MM-DD") : ""
-                )
-              }
-              disabled={isEditMode && !canUpdate}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <CustomDatePicker
-              label="End Date"
-              value={formData.endDate ? dayjs(formData.endDate) : null}
-              onChange={(newVal: Dayjs | null) =>
-                handleInputChange(
-                  "endDate",
-                  newVal ? newVal.format("YYYY-MM-DD") : ""
-                )
-              }
-              disabled={isEditMode && !canUpdate}
-              required={false}
-              error={!!formErrors.endDate}
-              helperText={formErrors.endDate}
-            />
+                <CustomDatePicker
+                  label="End Date"
+                  value={formData.endDate ? dayjs(formData.endDate) : null}
+                  onChange={(newVal: Dayjs | null) =>
+                    handleInputChange(
+                      "endDate",
+                      newVal ? newVal.format("YYYY-MM-DD") : ""
+                    )
+                  }
+                  disabled={isEditMode && !canUpdate}
+                  required={false}
+                  error={!!formErrors.endDate}
+                  helperText={formErrors.endDate}
+                />
+              </Box>
+            </Box>
           </Grid>
 
           <Grid size={{ xs: 12 }}>
@@ -577,7 +570,7 @@ function ProjectDetailsView() {
                   `${option.firstName} ${option.lastName} - ${option.email}`
                 }
                 value={
-                  availableEmployees.find(
+                  availableEmployees?.find(
                     (e) => e.employeeId === selectedEmployee
                   ) || null
                 }
@@ -867,12 +860,25 @@ function ProjectDetailsView() {
               sprints={sprints}
               onEdit={canUpdate ? handleSprintEdit : undefined}
               onDelete={canDelete ? handleSprintDelete : undefined}
+              onRowClick={handleSprintViewBoard}
               canEdit={canUpdate}
               canDelete={canDelete}
             />
           </>
         )}
       </Paper>
+
+      {/* Sprint Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={sprintDeleteConfirm.open}
+        title="Delete Sprint"
+        message={`Are you sure you want to delete sprint "${sprintDeleteConfirm.sprint?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        severity="error"
+        onConfirm={handleSprintDeleteConfirm}
+        onCancel={() => setSprintDeleteConfirm({ open: false, sprint: null })}
+      />
     </Box>
   );
 }

@@ -25,7 +25,7 @@ export const employeeSlice = createSlice({
   name: "employee",
   initialState: initEmployeeState,
   reducers: {
-    setSelectedEmployee: (state, action) => {
+    selectSpecificEmployee: (state, action) => {
       state.selectedEmployee = action.payload;
     },
     clearSelectedEmployee: (state) => {
@@ -50,6 +50,9 @@ export const employeeSlice = createSlice({
       });
   },
 });
+
+export const { selectSpecificEmployee, clearSelectedEmployee } =
+  employeeSlice.actions;
 
 export const selectEmployee = (state: RootState) => state.employee;
 

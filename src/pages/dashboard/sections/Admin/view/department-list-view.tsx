@@ -494,6 +494,7 @@ function DepartmentListView() {
 
       <CustomTable
         rows={flattenedDepartments}
+        checkboxSelection={false}
         columns={columns}
         getRowId={(row: any) => row.id}
         paginationModel={paginationModel}
