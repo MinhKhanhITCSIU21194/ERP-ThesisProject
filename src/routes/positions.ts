@@ -9,11 +9,7 @@ const router = Router();
 router.use(authenticateToken);
 
 // GET routes
-router.get(
-  "/",
-  requirePermission("POSITION_MANAGEMENT", "canView"),
-  positionController.getAllPositions.bind(positionController)
-);
+router.get("/", positionController.getAllPositions.bind(positionController));
 
 router.get(
   "/hierarchy",

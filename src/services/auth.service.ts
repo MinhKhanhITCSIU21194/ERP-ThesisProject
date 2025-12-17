@@ -758,6 +758,103 @@ export class AuthService {
     );
     return result.affected || 0;
   }
+
+  /**
+   * Set password for new employee during setup
+   * Returns access and refresh tokens
+   */
+  async setEmployeePassword(
+    email: string,
+    password: string,
+    deviceInfo?: { userAgent?: string; ipAddress?: string }
+  ): Promise<{
+    success: boolean;
+    message: string;
+    accessToken?: string;
+    refreshToken?: string;
+    user?: any;
+  }> {
+    try {
+      // Find user by email
+      const user = await this.userRepository.findOne({
+        where: { email: email.toLowerCase().trim() },
+        relations: ["role", "role.permissions"],
+      });
+
+      if (!user) {
+        return { success: false, message: "User not found" };
+      }
+
+      if (user.isActive) {
+        return {
+          success: false,
+          message: "Account is already activated. Please use regular login.",
+        };
+      }
+
+      // Hash and save new password
+      const passwordHash = await bcrypt.hash(password, 10);
+      user.passwordHash = passwordHash;
+      user.passwordChangedAt = new Date();
+      user.isActive = true; // Activate the account
+      user.lastLogin = new Date();
+      await this.userRepository.save(user);
+
+      // Generate tokens first
+      const sessionId = crypto.randomUUID();
+      const accessToken = (jwt as any).sign(
+        {
+          userId: user.userId,
+          username: user.username,
+          email: user.email,
+          roleId: user.roleId,
+          sessionId: sessionId,
+        },
+        this.JWT_SECRET,
+        { expiresIn: this.JWT_EXPIRES_IN }
+      );
+
+      const refreshToken = (jwt as any).sign(
+        {
+          userId: user.userId,
+          sessionId: sessionId,
+        },
+        this.REFRESH_TOKEN_SECRET,
+        { expiresIn: this.REFRESH_TOKEN_EXPIRES_IN }
+      );
+
+      // Create session with tokens
+      const session = this.sessionRepository.create({
+        sessionId: sessionId,
+        userId: user.userId,
+        sessionToken: accessToken,
+        refreshToken: refreshToken,
+        userAgent: deviceInfo?.userAgent || "Unknown",
+        ipAddress: deviceInfo?.ipAddress || "Unknown",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      });
+      await this.sessionRepository.save(session);
+
+      return {
+        success: true,
+        message: "Password set successfully",
+        accessToken,
+        refreshToken,
+        user: {
+          userId: user.userId,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isActive: user.isActive,
+        },
+      };
+    } catch (error: any) {
+      console.error("Set employee password error:", error);
+      return { success: false, message: "Failed to set password" };
+    }
+  }
 }
 // ---------------------------------------------------------------------------------------------------------------------------------//
 // --------------------------------------------------Email class--------------------------------------------------------------------//

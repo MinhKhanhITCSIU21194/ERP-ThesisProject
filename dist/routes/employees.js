@@ -1,0 +1,20 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const employee_controller_1 = require("../controllers/employee.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const permission_middleware_1 = require("../middleware/permission.middleware");
+const router = (0, express_1.Router)();
+const employeeController = new employee_controller_1.EmployeeController();
+router.get("/statistics", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canView"), employeeController.getStatistics);
+router.get("/expiring-contracts", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canView"), employeeController.getExpiringContracts);
+router.get("/code/:code", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canView"), employeeController.getEmployeeByCode);
+router.get("/department/:department", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canView"), employeeController.getEmployeesByDepartment);
+router.get("/manager/:managerId", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canView"), employeeController.getEmployeesByManager);
+router.get("/:id", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canView"), employeeController.getEmployeeById);
+router.get("/", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canView"), employeeController.getEmployees);
+router.post("/", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canCreate"), employeeController.createEmployee);
+router.put("/:id", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canUpdate"), employeeController.updateEmployee);
+router.delete("/:id", auth_middleware_1.authenticateToken, (0, permission_middleware_1.requirePermission)("EMPLOYEE_MANAGEMENT", "canDelete"), employeeController.deleteEmployee);
+exports.default = router;
+//# sourceMappingURL=employees.js.map

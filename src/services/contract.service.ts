@@ -171,6 +171,37 @@ export class ContractService {
       contractData.contractNumber = `CNT-${String(count + 1).padStart(6, "0")}`;
     }
 
+    // Check for overlapping active contracts
+    if (contractData.employeeId) {
+      const overlappingContracts = await this.contractRepository
+        .createQueryBuilder("contract")
+        .where("contract.employeeId = :employeeId", {
+          employeeId: contractData.employeeId,
+        })
+        .andWhere("contract.status = :status", {
+          status: ContractStatus.ACTIVE,
+        })
+        .andWhere("contract.deletedAt IS NULL")
+        .andWhere(
+          "(contract.endDate IS NULL OR contract.endDate > :startDate)",
+          { startDate: contractData.startDate }
+        )
+        .getMany();
+
+      // Terminate overlapping contracts
+      if (overlappingContracts.length > 0) {
+        for (const existingContract of overlappingContracts) {
+          existingContract.status = ContractStatus.TERMINATED;
+          existingContract.endDate = new Date(contractData.startDate as Date);
+          // Set end date to one day before new contract starts
+          existingContract.endDate.setDate(
+            existingContract.endDate.getDate() - 1
+          );
+          await this.contractRepository.save(existingContract);
+        }
+      }
+    }
+
     const contract = this.contractRepository.create(contractData);
     await this.contractRepository.save(contract);
 

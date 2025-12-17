@@ -93,7 +93,8 @@ export const signIn = async (req: Request, res: Response) => {
         firstName: result.user!.firstName,
         lastName: result.user!.lastName,
         fullName: `${result.user!.firstName} ${result.user!.lastName}`,
-        employeeID: result.user!.employeeId,
+        employeeId: result.user!.employeeId, // Employee UUID for API calls
+        employeeCode: result.user!.employeeCode, // Employee code string
         role: result.user!.role, // Now contains the full role object with permissions
         isActive: result.user!.isActive,
         isEmailVerified: result.user!.isEmailVerified,
@@ -250,7 +251,8 @@ export const validateSession = async (req: Request, res: Response) => {
         firstName: result.user!.firstName,
         lastName: result.user!.lastName,
         fullName: `${result.user!.firstName} ${result.user!.lastName}`,
-        employeeID: result.user!.employeeId,
+        employeeId: (result.user as any).employeeId, // Employee UUID for API calls
+        employeeCode: result.user!.employeeCode, // Employee code string
         role: result.user!.role,
         isEmailVerified: result.user!.isEmailVerified,
         lastLogin: result.user!.lastLogin,
@@ -312,7 +314,7 @@ export const setNewPassword = async (req: Request, res: Response) => {
         firstName: result.user!.firstName,
         lastName: result.user!.lastName,
         fullName: `${result.user!.firstName} ${result.user!.lastName}`,
-        employeeID: result.user!.employeeId,
+        employeeCode: result.user!.employeeCode,
         role: result.user!.role, // Now contains the full role object with permissions
         isActive: result.user!.isActive,
         isEmailVerified: result.user!.isEmailVerified,

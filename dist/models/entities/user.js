@@ -40,6 +40,16 @@ __decorate([
 ], User.prototype, "email", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "varchar", length: 255 }),
+    (0, typeorm_1.Index)(),
+    __metadata("design:type", String)
+], User.prototype, "firstName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "varchar", length: 255 }),
+    (0, typeorm_1.Index)(),
+    __metadata("design:type", String)
+], User.prototype, "lastName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "varchar", length: 255 }),
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);
 __decorate([
@@ -65,6 +75,11 @@ __decorate([
     (0, typeorm_1.Column)({ type: "int", default: 0 }),
     __metadata("design:type", Number)
 ], User.prototype, "failedLoginAttempts", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", default: false }),
+    (0, typeorm_1.Index)(),
+    __metadata("design:type", Boolean)
+], User.prototype, "isEmailVerified", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "timestamp", nullable: true }),
     __metadata("design:type", Date)

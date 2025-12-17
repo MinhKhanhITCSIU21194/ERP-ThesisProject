@@ -241,8 +241,15 @@ export class ProjectService {
           !existingMember.leftAt &&
           !newMemberIds.includes(existingMember.employeeId)
         ) {
-          existingMember.leftAt = new Date();
-          await this.projectMemberRepository.save(existingMember);
+          // Use update query to avoid projectId issue
+          await this.projectMemberRepository
+            .createQueryBuilder()
+            .update()
+            .set({ leftAt: new Date() })
+            .where("memberId = :memberId", {
+              memberId: existingMember.memberId,
+            })
+            .execute();
         }
       }
 
@@ -253,22 +260,40 @@ export class ProjectService {
         );
 
         if (existingMember) {
+          // Use update query to avoid projectId being set to undefined
+          const updateData: any = {
+            role: newMember.role,
+          };
+
           // Reactivate if previously left
           if (existingMember.leftAt) {
-            existingMember.leftAt = null;
+            updateData.leftAt = null;
           }
-          // Always update role
-          existingMember.role = newMember.role as any;
-          await this.projectMemberRepository.save(existingMember);
+
+          await this.projectMemberRepository
+            .createQueryBuilder()
+            .update()
+            .set(updateData)
+            .where("memberId = :memberId", {
+              memberId: existingMember.memberId,
+            })
+            .execute();
         } else {
           // Add new member (ensure projectId is set)
+          console.log(
+            "Adding NEW member - project.projectId:",
+            project.projectId
+          );
+          console.log("New member data:", newMember);
           const projectMember = this.projectMemberRepository.create({
             projectId: project.projectId,
             employeeId: newMember.employeeId,
             role: newMember.role as any,
             joinedAt: new Date(),
           });
+          console.log("Created member object before save:", projectMember);
           await this.projectMemberRepository.save(projectMember);
+          console.log("Member saved successfully");
         }
       }
 
@@ -276,9 +301,16 @@ export class ProjectService {
       delete data.members;
     }
 
+    // Remove members relation from project before saving to avoid cascading updates
+    const membersBackup = project.members;
+    delete (project as any).members;
+
     // Update other project fields
     Object.assign(project, data);
     await this.projectRepository.save(project);
+
+    // Restore members for the reload query
+    (project as any).members = membersBackup;
 
     // Reload project with full relations
     const updatedProject = await this.projectRepository.findOne({

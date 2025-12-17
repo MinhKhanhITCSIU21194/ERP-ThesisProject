@@ -14,7 +14,7 @@ import {
 @Entity("users")
 @Unique(["username"])
 @Unique(["email"])
-@Unique(["employeeId"])
+@Unique(["employeeCode"])
 export class User {
   @PrimaryGeneratedColumn("uuid")
   userId!: string;
@@ -44,7 +44,7 @@ export class User {
 
   @Column({ type: "varchar", length: 20, nullable: true })
   @Index()
-  employeeId?: string;
+  employeeCode?: string;
 
   @Column({ type: "int" }) // Keep roleId as number - lookup table
   @Index()

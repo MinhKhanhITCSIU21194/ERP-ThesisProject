@@ -114,6 +114,99 @@ export class UserService {
   }
 
   /**
+   * Update user information
+   */
+  async updateUser(
+    userId: string,
+    data: Partial<User>
+  ): Promise<{ success: boolean; message: string; user?: User }> {
+    try {
+      console.log("updateUser called with userId:", userId);
+      console.log("updateUser data:", data);
+      console.log("roleId type:", typeof data.roleId, "value:", data.roleId);
+
+      const user = await this.userRepository.findOne({
+        where: { userId },
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          message: "User not found",
+        };
+      }
+
+      console.log("Current user roleId:", user.roleId);
+
+      // If role is being updated, verify it exists
+      if (data.roleId) {
+        const role = await this.roleRepository.findOne({
+          where: { roleId: data.roleId },
+        });
+
+        console.log("Role lookup result:", role);
+
+        if (!role) {
+          return {
+            success: false,
+            message: "Role not found",
+          };
+        }
+      }
+
+      // Build update object
+      const updateData: any = {};
+      if (data.firstName !== undefined) updateData.firstName = data.firstName;
+      if (data.lastName !== undefined) updateData.lastName = data.lastName;
+      if (data.username !== undefined) updateData.username = data.username;
+      if (data.roleId !== undefined) {
+        console.log("Updating roleId from", user.roleId, "to", data.roleId);
+        updateData.roleId = data.roleId;
+      }
+      if (data.employeeCode !== undefined)
+        updateData.employeeCode = data.employeeCode;
+      if (data.isEmailVerified !== undefined)
+        updateData.isEmailVerified = data.isEmailVerified;
+      if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+      console.log("Update data:", updateData);
+
+      // Use direct UPDATE query to avoid entity manager cache issues
+      await this.userRepository
+        .createQueryBuilder()
+        .update(User)
+        .set(updateData)
+        .where("userId = :userId", { userId })
+        .execute();
+
+      console.log("User updated successfully with direct query");
+
+      // Fetch updated user with role relations using a fresh query
+      const updatedUser = await this.userRepository
+        .createQueryBuilder("user")
+        .leftJoinAndSelect("user.role", "role")
+        .leftJoinAndSelect("role.permissions", "permissions")
+        .where("user.userId = :userId", { userId })
+        .getOne();
+
+      console.log("Fetched updated user:", {
+        userId: updatedUser?.userId,
+        roleId: updatedUser?.roleId,
+        roleName: updatedUser?.role?.name,
+      });
+
+      return {
+        success: true,
+        message: "User updated successfully",
+        user: updatedUser || undefined,
+      };
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Update user role
    */
   async updateUserRole(

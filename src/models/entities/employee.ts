@@ -54,7 +54,7 @@ export class Employee {
   userId?: string;
 
   // Basic Information
-  @Column({ type: "varchar", length: 50, unique: true })
+  @Column({ type: "varchar", length: 50 })
   @Index()
   employeeCode!: string; // e.g., EMP001, EMP002
 
@@ -95,7 +95,7 @@ export class Employee {
   passportNumber?: string;
 
   // Contact Information
-  @Column({ type: "varchar", length: 100, unique: true })
+  @Column({ type: "varchar", length: 100 })
   @Index()
   email!: string;
 
@@ -150,9 +150,6 @@ export class Employee {
   @Index()
   employmentStatus!: EmploymentStatus;
 
-  @Column({ type: "varchar", length: 100, nullable: true })
-  department?: string; // Legacy field - kept for backwards compatibility
-
   // Many-to-Many relationship with Departments through EmployeeDepartment
   @OneToMany(
     () => EmployeeDepartment,
@@ -177,9 +174,6 @@ export class Employee {
   positionEntity?: Position;
 
   @Column({ type: "varchar", length: 100, nullable: true })
-  position?: string; // Legacy field - kept for backwards compatibility
-
-  @Column({ type: "varchar", length: 100, nullable: true })
   jobTitle?: string;
 
   @Column({ type: "varchar", length: 100, nullable: true })
@@ -188,6 +182,18 @@ export class Employee {
   @Column({ type: "uuid", nullable: true })
   @Index()
   reportingManagerId?: string; // Self-referencing to another employee
+
+  @Column({ type: "varchar", length: 100, nullable: true })
+  suggestedRole?: string; // Role suggested by manager for admin approval
+
+  @Column({ type: "varchar", length: 500, nullable: true })
+  setupToken?: string; // Token for initial account setup
+
+  @Column({ type: "timestamp", nullable: true })
+  setupTokenExpiry?: Date; // Expiry date for setup token
+
+  @Column({ type: "boolean", default: false })
+  hasCompletedSetup!: boolean; // Whether employee has completed initial setup
 
   // Work Schedule Information
   @Column({ type: "int", default: 40 })

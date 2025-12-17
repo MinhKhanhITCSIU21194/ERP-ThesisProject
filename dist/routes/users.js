@@ -1,29 +1,15 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const router = express_1.default.Router();
-router.get("/", (req, res) => {
-    res.json({
-        message: "Users endpoint",
-        users: [],
-    });
-});
-router.get("/:id", (req, res) => {
-    const { id } = req.params;
-    res.json({
-        message: `User with ID: ${id}`,
-        user: null,
-    });
-});
-router.post("/", (req, res) => {
-    const userData = req.body;
-    res.status(201).json({
-        message: "User created successfully",
-        user: userData,
-    });
-});
-exports.default = router;
+const express_1 = require("express");
+const user_controller_1 = require("../controllers/user.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const usersRoutes = (0, express_1.Router)();
+usersRoutes.use(auth_middleware_1.authenticateToken);
+usersRoutes.get("/stats", user_controller_1.userController.getUserStats.bind(user_controller_1.userController));
+usersRoutes.get("/role/:roleId", user_controller_1.userController.getUsersByRole.bind(user_controller_1.userController));
+usersRoutes.get("/", user_controller_1.userController.getAllUsers.bind(user_controller_1.userController));
+usersRoutes.get("/:id", user_controller_1.userController.getUserById.bind(user_controller_1.userController));
+usersRoutes.patch("/:id/status", user_controller_1.userController.updateUserStatus.bind(user_controller_1.userController));
+usersRoutes.patch("/:id/role", user_controller_1.userController.updateUserRole.bind(user_controller_1.userController));
+exports.default = usersRoutes;
 //# sourceMappingURL=users.js.map

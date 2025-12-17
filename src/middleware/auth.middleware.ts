@@ -70,9 +70,57 @@ export const authenticateToken = async (
 
     const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key";
 
-    (jwt as any).verify(token, JWT_SECRET, (err: any, decoded: any) => {
+    (jwt as any).verify(token, JWT_SECRET, async (err: any, decoded: any) => {
       if (err) {
-        // Clear cookies if token is invalid
+        // Verification failed (could be expired or invalid). Attempt refresh.
+        try {
+          const refreshToken = cookieService.getRefreshTokenFromCookies(req);
+          const sessionId = cookieService.getSessionIdFromCookies(req);
+
+          if (refreshToken && sessionId) {
+            const { AuthService } = await import("../services/auth.service");
+            const authService = new AuthService();
+
+            const refreshResult = await authService.refreshAccessToken(
+              refreshToken
+            );
+
+            if (refreshResult.success && refreshResult.accessToken) {
+              // Set new access token cookie and update session cookie
+              cookieService.setAccessTokenCookie(
+                res,
+                refreshResult.accessToken
+              );
+              cookieService.setSessionCookie(res, sessionId);
+
+              // Verify the new access token synchronously and attach user
+              try {
+                const newDecoded = (jwt as any).verify(
+                  refreshResult.accessToken,
+                  JWT_SECRET
+                );
+
+                req.user = newDecoded as {
+                  username: string;
+                  userId: string;
+                  email: string;
+                  role: Role;
+                  sessionId?: string;
+                };
+
+                return next();
+              } catch (verifyNewErr) {
+                // If new token cannot be verified, fall through to clear
+                console.error("New token verification failed:", verifyNewErr);
+              }
+            }
+          }
+        } catch (refreshErr) {
+          console.error("Token refresh attempt failed:", refreshErr);
+          // Continue to clear cookies and respond below
+        }
+
+        // If we reach here, refresh did not succeed — clear cookies and deny access
         cookieService.clearAllAuthCookies(res);
 
         return res.status(403).json({
@@ -82,6 +130,7 @@ export const authenticateToken = async (
         });
       }
 
+      // Token valid
       req.user = decoded as {
         username: string;
         userId: string;

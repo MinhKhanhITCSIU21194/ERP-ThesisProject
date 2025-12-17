@@ -24,7 +24,7 @@ export enum ProjectMemberRole {
 }
 
 @Entity("project_members")
-@Unique(["projectId", "employeeId"]) // Prevent duplicate memberships
+@Index(["projectId", "employeeId"], { unique: true, where: '"leftAt" IS NULL' }) // Unique only for active members
 export class ProjectMember {
   @PrimaryGeneratedColumn("uuid")
   memberId!: string;

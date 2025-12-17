@@ -14,7 +14,7 @@ import { AuthRequest } from "../middleware/auth.middleware";
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, status, priority, startDate, endDate } =
+    const { name, description, status, priority, startDate, endDate, members } =
       req.body;
 
     if (!name) {
@@ -44,17 +44,24 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       projectManagerId: employee.employeeId,
+      members: members || [],
     });
 
-    // Automatically add the creator as a project manager member
-    await projectService.addProjectMember(
-      {
-        projectId: project.projectId,
-        employeeId: employee.employeeId,
-        role: "PROJECT_MANAGER" as any,
-      },
-      req.user!.userId
+    // Automatically add the creator as a project manager member if not already included
+    const isCreatorInMembers = members?.some(
+      (m: any) => m.employeeId === employee.employeeId
     );
+
+    if (!isCreatorInMembers) {
+      await projectService.addProjectMember(
+        {
+          projectId: project.projectId,
+          employeeId: employee.employeeId,
+          role: "PROJECT_MANAGER" as any,
+        },
+        req.user!.userId
+      );
+    }
 
     return res.status(201).json({
       success: true,

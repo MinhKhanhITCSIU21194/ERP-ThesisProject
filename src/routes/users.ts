@@ -39,6 +39,14 @@ usersRoutes.get("/", userController.getAllUsers.bind(userController));
 usersRoutes.get("/:id", userController.getUserById.bind(userController));
 
 /**
+ * @route   PUT /api/users/:id
+ * @desc    Update user information
+ * @body    { firstName?, lastName?, username?, roleId?, employeeCode?, isEmailVerified?, isActive? }
+ * @access  Private
+ */
+usersRoutes.put("/:id", userController.updateUser.bind(userController));
+
+/**
  * @route   PATCH /api/users/:id/status
  * @desc    Update user status (activate/deactivate)
  * @body    { isActive: boolean }

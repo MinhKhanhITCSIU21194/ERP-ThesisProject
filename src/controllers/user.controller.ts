@@ -30,7 +30,7 @@ export class UserController {
         lastName: user.lastName,
         fullName: `${user.firstName} ${user.lastName}`,
         isActive: user.isActive,
-        employeeId: user.employeeId,
+        employeeCode: user.employeeCode,
         role: {
           roleId: user.role.roleId,
           name: user.role.name,
@@ -86,7 +86,7 @@ export class UserController {
         lastName: user.lastName,
         fullName: `${user.firstName} ${user.lastName}`,
         isActive: user.isActive,
-        employeeId: user.employeeId,
+        employeeCode: user.employeeCode,
         role: {
           roleId: user.role.roleId,
           name: user.role.name,
@@ -140,7 +140,7 @@ export class UserController {
         lastName: user.lastName,
         fullName: `${user.firstName} ${user.lastName}`,
         isActive: user.isActive,
-        employeeId: user.employeeId,
+        employeeCode: user.employeeCode,
         role: {
           roleId: user.role.roleId,
           name: user.role.name,
@@ -162,6 +162,39 @@ export class UserController {
       return res.status(500).json({
         success: false,
         message: "Internal server error",
+      });
+    }
+  }
+
+  /**
+   * Update user information
+   * PUT /api/users/:id
+   */
+  async updateUser(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+
+      const result = await userService.updateUser(id, data);
+
+      if (!result.success) {
+        return res.status(404).json({
+          success: false,
+          message: result.message,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        user: result.user,
+      });
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
       });
     }
   }

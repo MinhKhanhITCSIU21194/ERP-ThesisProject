@@ -2,9 +2,39 @@ import { Router } from "express";
 import { EmployeeController } from "../controllers/employee.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { requirePermission } from "../middleware/permission.middleware";
+import multer from "multer";
 
 const router = Router();
 const employeeController = new EmployeeController();
+
+// Configure multer for memory storage (file buffer)
+const upload = multer({ storage: multer.memoryStorage() });
+
+/**
+ * @route   GET /api/employees/export
+ * @desc    Export employees to Excel
+ * @access  Private (requires authentication and export permission)
+ * @query   pageIndex, pageSize, search, departmentId, positionId (same as getEmployees)
+ */
+router.get(
+  "/export",
+  authenticateToken,
+  requirePermission("EMPLOYEE_MANAGEMENT", "canExport"),
+  employeeController.exportEmployees
+);
+
+/**
+ * @route   POST /api/employees/import
+ * @desc    Import employees from Excel
+ * @access  Private (requires authentication and import permission)
+ */
+router.post(
+  "/import",
+  authenticateToken,
+  requirePermission("EMPLOYEE_MANAGEMENT", "canImport"),
+  upload.single("file"),
+  employeeController.importEmployees
+);
 
 /**
  * @route   GET /api/employees/statistics
@@ -85,7 +115,7 @@ router.get(
  * @route   GET /api/employees
  * @desc    Get all employees with pagination and filtering
  * @access  Private (requires authentication and view permission)
- * @query   pageIndex, pageSize, sortBy, sortOrder, search, employmentStatus, contractType, department, position, hireDateFrom, hireDateTo
+ * @query   pageIndex, pageSize, sortBy, sortOrder, search, employmentStatus, departmentId, positionId, hireDateFrom, hireDateTo
  */
 router.get(
   "/",

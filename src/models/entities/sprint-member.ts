@@ -21,7 +21,7 @@ export enum SprintMemberRole {
 }
 
 @Entity("sprint_members")
-@Unique(["sprintId", "employeeId"]) // Prevent duplicate memberships
+@Index(["sprintId", "employeeId"], { unique: true, where: '"leftAt" IS NULL' }) // Unique only for active members
 export class SprintMember {
   @PrimaryGeneratedColumn("uuid")
   sprintMemberId!: string;
