@@ -73,7 +73,9 @@ class CacheService {
     const matchingKeys = keys.filter((key) => key.includes(pattern));
     if (matchingKeys.length > 0) {
       this.cache.del(matchingKeys);
-      console.log(`Cache: Invalidated ${matchingKeys.length} keys matching "${pattern}"`);
+      console.log(
+        `Cache: Invalidated ${matchingKeys.length} keys matching "${pattern}"`
+      );
     }
   }
 
@@ -110,34 +112,36 @@ export const CacheKeys = {
   employeeByCode: (code: string) => `employee:code:${code}`,
   employeeByEmail: (email: string) => `employee:email:${email}`,
   employeeStats: () => `employees:stats`,
-  
+
   // Department cache keys
-  departmentList: (options: any) => `departments:list:${JSON.stringify(options)}`,
+  departmentList: (options: any) =>
+    `departments:list:${JSON.stringify(options)}`,
   departmentById: (id: string) => `department:${id}`,
   departmentHierarchy: () => `departments:hierarchy`,
   departmentStats: (id: string) => `department:${id}:stats`,
-  
+
   // Position cache keys
   positionList: (options: any) => `positions:list:${JSON.stringify(options)}`,
   positionById: (id: string) => `position:${id}`,
   positionHierarchy: () => `positions:hierarchy`,
-  
+
   // Role cache keys
   roleList: () => `roles:list`,
   roleById: (id: string) => `role:${id}`,
   rolePermissions: (roleId: number) => `role:${roleId}:permissions`,
-  
+
   // Project cache keys
   projectList: (options: any) => `projects:list:${JSON.stringify(options)}`,
   projectById: (id: string) => `project:${id}`,
   projectByEmployee: (employeeId: string) => `projects:employee:${employeeId}`,
-  
+
   // Contract cache keys
   contractList: (options: any) => `contracts:list:${JSON.stringify(options)}`,
   contractById: (id: string) => `contract:${id}`,
-  
+
   // Leave request cache keys
-  leaveRequestList: (options: any) => `leave-requests:list:${JSON.stringify(options)}`,
+  leaveRequestList: (options: any) =>
+    `leave-requests:list:${JSON.stringify(options)}`,
   leaveRequestById: (id: string) => `leave-request:${id}`,
 };
 

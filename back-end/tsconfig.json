@@ -14,10 +14,11 @@
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "ignoreDeprecations": "5.0"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
