@@ -1,0 +1,49 @@
+{
+  "name": "ERP System Back-End",
+  "version": "1.0.0",
+  "description": "This is the backend component of the ERP System thesis project.",
+  "main": "dist/app.js",
+  "scripts": {
+    "start": "node dist/app.js",
+    "dev": "nodemon src/app.ts",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "seed:permissions": "ts-node src/scripts/seed-permissions.ts",
+    "seed:complete": "ts-node src/scripts/seed-complete-with-contracts.ts",
+    "seed:projects": "ts-node src/scripts/seed-projects.ts",
+    "set:admin-permissions": "ts-node src/scripts/set-admin-permissions.ts",
+    "migrate": "ts-node src/scripts/run-migrations.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.6",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "socket.io": "^4.8.1",
+    "typeorm": "^0.3.27",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.5.4",
+    "@types/nodemailer": "^7.0.2",
+    "@types/pg": "^8.11.8",
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "author": "",
+  "license": "ISC"
+}
