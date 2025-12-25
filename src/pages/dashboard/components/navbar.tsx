@@ -260,14 +260,18 @@ function Navbar() {
 
   // Memoize filtered tabs to prevent re-filtering on every render
   const visibleTabs = useMemo(() => {
-    return TABS.filter((tab) =>
-      user?.role.permissions.some(
-        (permission) =>
+    const filtered = TABS.filter((tab) => {
+      const hasPermission = user?.role.permissions.some((permission) => {
+        const match =
           permission.permission === tab.requiredRole &&
-          permission.canView === tab.canView
-      )
-    );
-  }, [user?.role.permissions]);
+          permission.canView === true;
+        return match;
+      });
+
+      return hasPermission;
+    });
+    return filtered;
+  }, [user]); // Depend on entire user object
 
   return (
     <Box

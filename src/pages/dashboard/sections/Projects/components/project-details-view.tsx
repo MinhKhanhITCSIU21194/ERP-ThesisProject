@@ -134,7 +134,7 @@ function ProjectDetailsView() {
     };
   }, [sprintDebounceTimer]);
 
-  // Load employees from manager's department
+  // Load employees from manager's department and auto-add creator as product owner
   useEffect(() => {
     const loadDepartmentEmployees = async () => {
       const managerId = isEditMode
@@ -148,6 +148,32 @@ function ProjectDetailsView() {
           pageSize: 100,
         });
         setAvailableEmployees(response.data || []);
+
+        // Auto-add creator as product owner when creating new project
+        if (!isEditMode && user?.employeeId && projectMembers.length === 0) {
+          const creatorEmployee = response.data?.find(
+            (e) => e.employeeId === user.employeeId
+          );
+
+          if (creatorEmployee) {
+            const creatorMember: ProjectMember = {
+              memberId: `temp-creator-${Date.now()}`,
+              projectId: "",
+              employeeId: creatorEmployee.employeeId || "",
+              employee: {
+                employeeId: creatorEmployee.employeeId || "",
+                firstName: creatorEmployee.firstName || "",
+                lastName: creatorEmployee.lastName || "",
+                email: creatorEmployee.email || "",
+              },
+              role: ProjectMemberRole.PRODUCT_OWNER,
+              joinedAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            setProjectMembers([creatorMember]);
+          }
+        }
       } catch (error) {
         console.error("Error loading employees:", error);
         setAvailableEmployees([]);
@@ -261,6 +287,12 @@ function ProjectDetailsView() {
     try {
       const submitData: CreateProjectData = {
         ...formData,
+        // Convert empty string dates to undefined to avoid PostgreSQL errors
+        startDate: formData.startDate || undefined,
+        endDate: formData.endDate || undefined,
+        projectManagerId: isEditMode
+          ? formData.projectManagerId
+          : user?.employeeId,
         members: projectMembers.map((m) => ({
           employeeId: m.employeeId,
           role: m.role,
@@ -566,19 +598,27 @@ function ProjectDetailsView() {
                 sx={{ flex: 1, minWidth: 250 }}
                 size="small"
                 options={availableEmployees}
-                getOptionLabel={(option) =>
-                  `${option.firstName} ${option.lastName} - ${option.email}`
-                }
+                getOptionLabel={(option) => {
+                  const deptName =
+                    option.departments?.[0]?.department?.name ||
+                    "No Department";
+                  return `${option.firstName} ${option.lastName} (${deptName})`;
+                }}
                 value={
                   availableEmployees?.find(
                     (e) => e.employeeId === selectedEmployee
                   ) || null
                 }
-                onChange={(_, newValue) =>
-                  setSelectedEmployee(newValue?.employeeId || "")
-                }
-                onInputChange={(_, newInputValue) => {
-                  setEmployeeSearchTerm(newInputValue);
+                onChange={(_, newValue) => {
+                  setSelectedEmployee(newValue?.employeeId || "");
+                  // Clear search term when an option is selected
+                  setEmployeeSearchTerm("");
+                }}
+                onInputChange={(_, newInputValue, reason) => {
+                  // Only update search term when typing, not when selecting
+                  if (reason === "input") {
+                    setEmployeeSearchTerm(newInputValue);
+                  }
                 }}
                 disabled={isEditMode && !canUpdate}
                 filterOptions={(x) => x}

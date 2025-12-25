@@ -34,10 +34,17 @@ function SignInView() {
     dispatch(clearError());
   };
 
-  // Handle form submission
+  // Handle form submission (only for sign-in step, not email check)
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    // If email not checked yet, check email instead of signing in
+    if (!emailChecked) {
+      await handleEmailSubmit(account.email);
+      return;
+    }
+
+    // Only proceed with sign-in if email is already checked
     try {
       const result = await dispatch(requestSignIn(account)).unwrap();
       if (result) {

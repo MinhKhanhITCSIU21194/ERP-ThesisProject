@@ -50,4 +50,7 @@ export type TableFilterState = {
   sortBy?: string;
   orderBy?: string;
   search?: string;
+  roleId?: number;
+  departmentId?: string;
+  positionId?: string;
 };

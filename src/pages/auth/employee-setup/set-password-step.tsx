@@ -11,17 +11,20 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { setEmployeePassword } from "../../../services/employee-setup.service";
+import { completeUserSetup } from "../../../services/user-setup.service";
 
 interface SetPasswordStepProps {
   token: string;
   employeeData: any;
   onSuccess: () => void;
+  isUserSetup?: boolean;
 }
 
 const SetPasswordStep: React.FC<SetPasswordStepProps> = ({
   token,
   employeeData,
   onSuccess,
+  isUserSetup = false,
 }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -68,19 +71,28 @@ const SetPasswordStep: React.FC<SetPasswordStepProps> = ({
 
     try {
       setLoading(true);
-      const response = await setEmployeePassword(token, password);
 
-      if (response.success && response.accessToken) {
-        // Store tokens
-        localStorage.setItem("accessToken", response.accessToken);
-        if (response.refreshToken) {
-          localStorage.setItem("refreshToken", response.refreshToken);
+      if (isUserSetup) {
+        // User setup - just set password, no tokens
+        const response = await completeUserSetup(token, password);
+        if (response.success) {
+          onSuccess();
+        } else {
+          setError(response.message || "Failed to set password");
         }
-
-        // Call success callback
-        onSuccess();
       } else {
-        setError(response.message || "Failed to set password");
+        // Employee setup - set password and get tokens
+        const response = await setEmployeePassword(token, password);
+        if (response.success && response.accessToken) {
+          // Store tokens
+          localStorage.setItem("accessToken", response.accessToken);
+          if (response.refreshToken) {
+            localStorage.setItem("refreshToken", response.refreshToken);
+          }
+          onSuccess();
+        } else {
+          setError(response.message || "Failed to set password");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Failed to set password");

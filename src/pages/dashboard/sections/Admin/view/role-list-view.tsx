@@ -16,7 +16,7 @@ import {
   Divider,
   Alert,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { CustomTable } from "../../../../components/Table";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
 import { selectRole } from "../../../../../redux/auth/role.slice";
@@ -47,14 +47,10 @@ function RoleListView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"edit" | "add">("edit");
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    permissions: [] as Permission[],
-  });
+  const [roleName, setRoleName] = useState("");
+  const [roleDescription, setRoleDescription] = useState("");
+  const [rolePermissions, setRolePermissions] = useState<Permission[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [inputName, setInputName] = useState("");
-  const [inputDescription, setInputDescription] = useState("");
 
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0,
@@ -90,13 +86,52 @@ function RoleListView() {
     setSelectedRole(role);
     const name = role.name;
     const description = role.description || "";
-    setFormData({
-      name,
-      description,
-      permissions: role.permissions || [],
+
+    // Initialize all permissions from the global permissions list
+    // and merge with role's existing permissions
+    const initializedPermissions = permissions.map((globalPerm) => {
+      const rolePermission = role.permissions?.find(
+        (p) => p.permission === globalPerm.permission
+      );
+
+      if (rolePermission) {
+        // Use role's permission settings
+        return {
+          ...globalPerm,
+          ...rolePermission,
+        };
+      } else {
+        // Use default permission (all false)
+        return {
+          ...globalPerm,
+          canView: false,
+          canRead: false,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canPermanentlyDelete: false,
+          canSetPermission: false,
+          canImport: false,
+          canExport: false,
+          canSubmit: false,
+          canCancel: false,
+          canApprove: false,
+          canReject: false,
+          canAssign: false,
+          canViewSalary: false,
+          canEditSalary: false,
+          canViewBenefit: false,
+          canReport: false,
+          canViewPartial: false,
+          canViewBelongTo: false,
+          canViewOwner: false,
+        };
+      }
     });
-    setInputName(name);
-    setInputDescription(description);
+
+    setRoleName(name);
+    setRoleDescription(description);
+    setRolePermissions(initializedPermissions);
     setModalMode("edit");
     setModalOpen(true);
     setError(null);
@@ -104,13 +139,36 @@ function RoleListView() {
 
   const handleAddNew = () => {
     setSelectedRole(null);
-    setFormData({
-      name: "",
-      description: "",
-      permissions: [],
-    });
-    setInputName("");
-    setInputDescription("");
+
+    // Initialize all permissions with default false values
+    const initializedPermissions = permissions.map((globalPerm) => ({
+      ...globalPerm,
+      canView: false,
+      canRead: false,
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+      canPermanentlyDelete: false,
+      canSetPermission: false,
+      canImport: false,
+      canExport: false,
+      canSubmit: false,
+      canCancel: false,
+      canApprove: false,
+      canReject: false,
+      canAssign: false,
+      canViewSalary: false,
+      canEditSalary: false,
+      canViewBenefit: false,
+      canReport: false,
+      canViewPartial: false,
+      canViewBelongTo: false,
+      canViewOwner: false,
+    }));
+
+    setRoleName("");
+    setRoleDescription("");
+    setRolePermissions(initializedPermissions);
     setModalMode("add");
     setModalOpen(true);
     setError(null);
@@ -120,58 +178,61 @@ function RoleListView() {
     setModalOpen(false);
     setSelectedRole(null);
     setError(null);
-    setInputName("");
-    setInputDescription("");
   };
-
-  // Debounce effect for name input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFormData((prev) => ({ ...prev, name: inputName }));
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [inputName]);
-
-  // Debounce effect for description input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setFormData((prev) => ({ ...prev, description: inputDescription }));
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [inputDescription]);
 
   const handleSaveRole = async () => {
     try {
       setError(null);
 
-      if (!formData.name.trim()) {
+      if (!roleName.trim()) {
         setError("Role name is required");
         return;
       }
 
-      const permissionIds = formData.permissions
-        .filter((p) => p.id)
-        .map((p) => parseInt(p.id as string));
+      // Prepare permissions array with all fields
+      const permissionsPayload = rolePermissions.map((p) => ({
+        id: p.id as string,
+        permission: p.permission,
+        canView: p.canView || false,
+        canRead: p.canRead || false,
+        canCreate: p.canCreate || false,
+        canUpdate: p.canUpdate || false,
+        canDelete: p.canDelete || false,
+        canPermanentlyDelete: p.canPermanentlyDelete || false,
+        canSetPermission: p.canSetPermission || false,
+        canImport: p.canImport || false,
+        canExport: p.canExport || false,
+        canSubmit: p.canSubmit || false,
+        canCancel: p.canCancel || false,
+        canApprove: p.canApprove || false,
+        canReject: p.canReject || false,
+        canAssign: p.canAssign || false,
+        canViewSalary: p.canViewSalary || false,
+        canEditSalary: p.canEditSalary || false,
+        canViewBenefit: p.canViewBenefit || false,
+        canReport: p.canReport || false,
+        canViewPartial: p.canViewPartial || false,
+        canViewBelongTo: p.canViewBelongTo || false,
+        canViewOwner: p.canViewOwner || false,
+      }));
 
       if (modalMode === "edit" && selectedRole) {
         await dispatch(
           updateRole({
             roleId: selectedRole.id,
             roleData: {
-              name: formData.name,
-              description: formData.description,
-              permissionIds,
+              name: roleName,
+              description: roleDescription,
+              permissions: permissionsPayload,
             },
           })
         ).unwrap();
       } else {
         await dispatch(
           createRole({
-            name: formData.name,
-            description: formData.description,
-            permissionIds,
+            name: roleName,
+            description: roleDescription,
+            permissions: permissionsPayload,
           })
         ).unwrap();
       }
@@ -206,43 +267,42 @@ function RoleListView() {
     }
   };
 
-  const handlePermissionChange = (
-    permission: Permission,
-    field: string,
-    value: boolean
-  ) => {
-    setFormData((prev) => {
-      const existingPermIndex = prev.permissions.findIndex(
-        (p) => p.permission === permission.permission
-      );
+  const handlePermissionChange = useCallback(
+    (permission: Permission, field: string, value: boolean) => {
+      setRolePermissions((prev) => {
+        const existingPermIndex = prev.findIndex(
+          (p) => p.permission === permission.permission
+        );
 
-      let updatedPermissions = [...prev.permissions];
+        let updatedPermissions = [...prev];
 
-      if (existingPermIndex >= 0) {
-        updatedPermissions[existingPermIndex] = {
-          ...updatedPermissions[existingPermIndex],
-          [field]: value,
-        };
-      } else {
-        updatedPermissions.push({
-          ...permission,
-          [field]: value,
-        });
-      }
+        if (existingPermIndex >= 0) {
+          updatedPermissions[existingPermIndex] = {
+            ...updatedPermissions[existingPermIndex],
+            [field]: value,
+          };
+        } else {
+          updatedPermissions.push({
+            ...permission,
+            [field]: value,
+          });
+        }
 
-      return { ...prev, permissions: updatedPermissions };
-    });
-  };
+        return updatedPermissions;
+      });
+    },
+    []
+  );
 
-  const getPermissionValue = (
-    permissionName: string,
-    field: string
-  ): boolean => {
-    const perm = formData.permissions.find(
-      (p) => p.permission === permissionName
-    );
-    return perm ? (perm[field as keyof Permission] as boolean) || false : false;
-  };
+  const getPermissionValue = useCallback(
+    (permissionName: string, field: string): boolean => {
+      const perm = rolePermissions.find((p) => p.permission === permissionName);
+      return perm
+        ? (perm[field as keyof Permission] as boolean) || false
+        : false;
+    },
+    [rolePermissions]
+  );
 
   const isAllPermissionFieldsChecked = (permissionName: string): boolean => {
     return permissionFields.every((field) =>
@@ -250,38 +310,38 @@ function RoleListView() {
     );
   };
 
-  const handleSelectAllPermissionFields = (
-    permission: Permission,
-    checked: boolean
-  ) => {
-    setFormData((prev) => {
-      const updatedPermissions = [...prev.permissions];
-      const existingPermIndex = updatedPermissions.findIndex(
-        (p) => p.permission === permission.permission
-      );
+  const handleSelectAllPermissionFields = useCallback(
+    (permission: Permission, checked: boolean) => {
+      setRolePermissions((prev) => {
+        const updatedPermissions = [...prev];
+        const existingPermIndex = updatedPermissions.findIndex(
+          (p) => p.permission === permission.permission
+        );
 
-      const newPermission = {
-        ...permission,
-        canView: checked,
-        canCreate: checked,
-        canUpdate: checked,
-        canDelete: checked,
-        canApprove: checked,
-        canReject: checked,
-        canAssign: checked,
-        canImport: checked,
-        canExport: checked,
-      };
+        const newPermission = {
+          ...permission,
+          canView: checked,
+          canCreate: checked,
+          canUpdate: checked,
+          canDelete: checked,
+          canApprove: checked,
+          canReject: checked,
+          canAssign: checked,
+          canImport: checked,
+          canExport: checked,
+        };
 
-      if (existingPermIndex >= 0) {
-        updatedPermissions[existingPermIndex] = newPermission;
-      } else {
-        updatedPermissions.push(newPermission);
-      }
+        if (existingPermIndex >= 0) {
+          updatedPermissions[existingPermIndex] = newPermission;
+        } else {
+          updatedPermissions.push(newPermission);
+        }
 
-      return { ...prev, permissions: updatedPermissions };
-    });
-  };
+        return updatedPermissions;
+      });
+    },
+    []
+  );
 
   const columns = [
     {
@@ -409,6 +469,7 @@ function RoleListView() {
         </Box>
         <CustomTable
           onSelectionChange={onSelectionChange}
+          checkboxSelection={false}
           onPaginationChange={handlePaginationChange}
           paginationModel={paginationModel}
           paginationMode="server"
@@ -444,16 +505,16 @@ function RoleListView() {
             <TextField
               fullWidth
               label="Role Name"
-              value={inputName}
-              onChange={(e) => setInputName(e.target.value)}
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
               margin="normal"
               required
             />
             <TextField
               fullWidth
               label="Description"
-              value={inputDescription}
-              onChange={(e) => setInputDescription(e.target.value)}
+              value={roleDescription}
+              onChange={(e) => setRoleDescription(e.target.value)}
               margin="normal"
               multiline
               rows={2}

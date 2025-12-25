@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Card,
@@ -12,13 +12,19 @@ import {
   StepLabel,
 } from "@mui/material";
 import { validateSetupToken } from "../../../services/employee-setup.service";
+import { validateUserSetupToken } from "../../../services/user-setup.service";
 import SetPasswordStep from "./set-password-step";
 import CompleteProfileStep from "./complete-profile-step";
 
 const steps = ["Validate Token", "Set Password", "Complete Profile"];
 
 const EmployeeSetup: React.FC = () => {
-  const { token } = useParams<{ token: string }>();
+  const { token: paramToken } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const queryToken = searchParams.get("token");
+  const token = paramToken || queryToken;
+  const isUserSetup = !paramToken && queryToken; // User setup uses query params
+
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -35,13 +41,30 @@ const EmployeeSetup: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await validateSetupToken(token!);
 
-      if (response.success && response.data) {
-        setEmployeeData(response.data);
-        setActiveStep(1); // Move to Set Password step
+      if (isUserSetup) {
+        // User setup validation
+        const response = await validateUserSetupToken(token!);
+        if (response.success && response.user) {
+          setEmployeeData({
+            firstName: response.user.firstName,
+            lastName: response.user.lastName,
+            email: response.user.email,
+            employeeCode: null, // Users don't have employee codes
+          });
+          setActiveStep(1); // Move to Set Password step
+        } else {
+          setError(response.message || "Invalid or expired token");
+        }
       } else {
-        setError(response.message || "Invalid or expired token");
+        // Employee setup validation
+        const response = await validateSetupToken(token!);
+        if (response.success && response.data) {
+          setEmployeeData(response.data);
+          setActiveStep(1); // Move to Set Password step
+        } else {
+          setError(response.message || "Invalid or expired token");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Failed to validate token");
@@ -51,7 +74,18 @@ const EmployeeSetup: React.FC = () => {
   };
 
   const handlePasswordSet = () => {
-    setActiveStep(2); // Move to Complete Profile step
+    if (isUserSetup) {
+      // For users, redirect to sign-in after password is set
+      navigate("/auth/sign-in", {
+        state: {
+          message:
+            "Account setup completed successfully! Please sign in with your credentials.",
+        },
+      });
+    } else {
+      // For employees, move to Complete Profile step
+      setActiveStep(2);
+    }
   };
 
   const handleSetupComplete = () => {
@@ -111,7 +145,9 @@ const EmployeeSetup: React.FC = () => {
       <Card sx={{ maxWidth: 800, width: "100%", mb: 4 }}>
         <CardContent>
           <Typography variant="h4" gutterBottom align="center">
-            Welcome to the Team!
+            {isUserSetup
+              ? "Complete Your Account Setup"
+              : "Welcome to the Team!"}
           </Typography>
           <Typography
             variant="body1"
@@ -119,21 +155,25 @@ const EmployeeSetup: React.FC = () => {
             align="center"
             mb={3}
           >
-            Complete your profile setup to get started
+            {isUserSetup
+              ? "Set your password to get started"
+              : "Complete your profile setup to get started"}
           </Typography>
 
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+          {!isUserSetup && (
+            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          )}
 
           {employeeData && (
             <Box mb={3}>
               <Typography variant="h6" gutterBottom>
-                Employee Information
+                {isUserSetup ? "User Information" : "Employee Information"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Name: {employeeData.firstName} {employeeData.lastName}
@@ -141,9 +181,11 @@ const EmployeeSetup: React.FC = () => {
               <Typography variant="body2" color="text.secondary">
                 Email: {employeeData.email}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Employee Code: {employeeData.employeeCode}
-              </Typography>
+              {employeeData.employeeCode && (
+                <Typography variant="body2" color="text.secondary">
+                  Employee Code: {employeeData.employeeCode}
+                </Typography>
+              )}
             </Box>
           )}
 
@@ -152,10 +194,11 @@ const EmployeeSetup: React.FC = () => {
               token={token!}
               employeeData={employeeData}
               onSuccess={handlePasswordSet}
+              isUserSetup={isUserSetup}
             />
           )}
 
-          {activeStep === 2 && (
+          {activeStep === 2 && !isUserSetup && (
             <CompleteProfileStep
               token={token!}
               employeeData={employeeData}

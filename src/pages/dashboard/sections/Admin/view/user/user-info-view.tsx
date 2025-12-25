@@ -53,8 +53,6 @@ function UserInfoView({
     lastName: "",
     email: "",
     username: "",
-    password: "",
-    confirmPassword: "",
     roleId: "",
     employeeCode: "",
     isEmailVerified: false,
@@ -63,7 +61,6 @@ function UserInfoView({
 
   const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
-  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -78,8 +75,6 @@ function UserInfoView({
         lastName: user.lastName || "",
         email: user.email || "",
         username: user.email?.split("@")[0] || "",
-        password: "",
-        confirmPassword: "",
         roleId: user.role?.roleId?.toString() || user.role?.id || "",
         employeeCode: user.employeeCode || "",
         isEmailVerified: user.isEmailVerified || false,
@@ -91,8 +86,6 @@ function UserInfoView({
         lastName: "",
         email: "",
         username: "",
-        password: "",
-        confirmPassword: "",
         roleId: "",
         employeeCode: "",
         isEmailVerified: false,
@@ -123,11 +116,6 @@ function UserInfoView({
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-
-    // Clear password error when user types
-    if (field === "password" || field === "confirmPassword") {
-      setPasswordError("");
-    }
   };
 
   const handleSave = () => {
@@ -147,37 +135,6 @@ function UserInfoView({
       return;
     }
 
-    // Password validation for new users
-    if (isAddMode) {
-      if (!formData.password) {
-        alert("Password is required");
-        return;
-      }
-
-      if (formData.password.length < 8) {
-        setPasswordError("Password must be at least 8 characters");
-        return;
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        setPasswordError("Passwords do not match");
-        return;
-      }
-    }
-
-    // Password validation for edit mode (only if password is provided)
-    if (isEditMode && formData.password) {
-      if (formData.password.length < 8) {
-        setPasswordError("Password must be at least 8 characters");
-        return;
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        setPasswordError("Passwords do not match");
-        return;
-      }
-    }
-
     const userData: any = {
       userId: user?.userId,
       firstName: formData.firstName,
@@ -189,11 +146,6 @@ function UserInfoView({
       isEmailVerified: formData.isEmailVerified,
       isActive: formData.status === UserStatus.ACTIVE,
     };
-
-    // Only include password if it's provided
-    if (formData.password) {
-      userData.password = formData.password;
-    }
 
     onSave?.(userData);
   };

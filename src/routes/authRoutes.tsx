@@ -34,6 +34,10 @@ export const authRoutes = [
         path: "employee-setup/:token",
         element: <EmployeeSetup />,
       },
+      {
+        path: "setup-account",
+        element: <EmployeeSetup />,
+      },
     ],
   },
 ];

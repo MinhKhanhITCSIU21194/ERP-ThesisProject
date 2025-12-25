@@ -71,3 +71,19 @@ export const updateUserStatus = createAsyncThunk(
     }
   }
 );
+
+export const resendUserSetup = createAsyncThunk(
+  "user/resend-setup",
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await POST(`/users/${userId}/resend-setup`, {});
+      return response.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to resend setup email";
+      return rejectWithValue(message);
+    }
+  }
+);

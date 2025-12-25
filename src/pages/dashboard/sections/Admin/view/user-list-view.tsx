@@ -1,4 +1,13 @@
-import { Box, Chip, IconButton, Paper, Tooltip } from "@mui/material";
+import {
+  Box,
+  Chip,
+  IconButton,
+  Paper,
+  Tooltip,
+  TextField,
+  Autocomplete,
+  InputAdornment,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { CustomTable } from "../../../../components/Table";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -6,8 +15,11 @@ import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
 import { selectUser } from "../../../../../redux/admin/users.slice";
 import { User } from "../../../../../data/auth/auth";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import SendIcon from "@mui/icons-material/Send";
 
-import { UserPermission } from "../../../../../data/auth/role";
+import { UserPermission, Role } from "../../../../../data/auth/role";
 import EditIcon from "@mui/icons-material/Edit";
 
 import { GridRowSelectionModel } from "@mui/x-data-grid";
@@ -16,16 +28,19 @@ import {
   createUser,
   updateUser,
   updateUserStatus,
+  resendUserSetup,
 } from "../../../../../services/auth/users.service";
 import { selectAuth } from "../../../../../redux/auth/auth.slice";
 import CustomButton from "../../../../components/Button";
-import CustomSearchField from "../../../../components/SearchBar.tsx";
 import UserInfoView from "./user/user-info-view";
 import ConfirmationDialog from "../../../../components/ConfirmationWindow";
+import { getRoleList } from "../../../../../services/auth/role.service";
+import { selectRole } from "../../../../../redux/auth/role.slice";
 
 function UserListView() {
   const { users, totalCount, isLoading } = useAppSelector(selectUser);
   const { user } = useAppSelector(selectAuth);
+  const { roles } = useAppSelector(selectRole);
   const dispatch = useAppDispatch();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"view" | "edit" | "add">("view");
@@ -50,14 +65,32 @@ function UserListView() {
     pageSize: 10,
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
   const handlePaginationChange = (page: number, pageSize: number) => {
     setPaginationModel({ page, pageSize });
   };
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    setPaginationModel({ page: 0, pageSize: paginationModel.pageSize }); // Reset to first page on search
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setSearchTerm(value);
+    setPaginationModel({ page: 0, pageSize: paginationModel.pageSize });
+  };
+
+  const handleSearchKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter") {
+      setPaginationModel({ page: 0, pageSize: paginationModel.pageSize });
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setPaginationModel({ page: 0, pageSize: paginationModel.pageSize });
+  };
+
+  const handleRoleChange = (_event: any, newValue: Role | null) => {
+    setSelectedRole(newValue);
+    setPaginationModel({ page: 0, pageSize: paginationModel.pageSize });
   };
 
   const [selectionModel, setSelectionModel] =
@@ -66,16 +99,28 @@ function UserListView() {
       ids: new Set(),
     });
 
-  // Fetch users when pagination or search changes
+  // Fetch roles on mount
+  useEffect(() => {
+    dispatch(getRoleList({ pageIndex: 0, pageSize: 100 }));
+  }, [dispatch]);
+
+  // Fetch users when pagination, search, or role filter changes
   useEffect(() => {
     dispatch(
       getUserList({
         pageIndex: paginationModel.page,
         pageSize: paginationModel.pageSize,
         search: searchTerm,
+        roleId: selectedRole?.roleId,
       })
     );
-  }, [dispatch, paginationModel.page, paginationModel.pageSize, searchTerm]);
+  }, [
+    dispatch,
+    paginationModel.page,
+    paginationModel.pageSize,
+    searchTerm,
+    selectedRole,
+  ]);
 
   const onSelectionChange = (newSelectionModel: GridRowSelectionModel) => {
     setSelectionModel(newSelectionModel);
@@ -152,6 +197,24 @@ function UserListView() {
           alert("User deactivated successfully");
         } catch (error: any) {
           alert(`Failed to deactivate user: ${error}`);
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
+  };
+
+  const handleResendSetup = (user: User) => {
+    setConfirmDialog({
+      open: true,
+      title: "Resend Setup Email",
+      message: `Are you sure you want to resend the setup email to "${user.firstName} ${user.lastName}" (${user.email})?`,
+      onConfirm: async () => {
+        try {
+          await dispatch(resendUserSetup(user.userId)).unwrap();
+          alert("Setup email resent successfully");
+        } catch (error: any) {
+          alert(`Failed to resend setup email: ${error}`);
         } finally {
           setConfirmDialog({ ...confirmDialog, open: false });
         }
@@ -298,6 +361,21 @@ function UserListView() {
                 </IconButton>
               </Tooltip>
             )}
+            {canUpdate && !RowUser.isEmailVerified && (
+              <Tooltip title="Resend Setup Email" arrow>
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => handleResendSetup(RowUser)}
+                  sx={{
+                    top: 5,
+                    "&:hover": { backgroundColor: "rgba(25, 118, 210, 0.1)" },
+                  }}
+                >
+                  <SendIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
             {canDelete && (
               <Tooltip title="Delete User" arrow>
                 <IconButton
@@ -338,10 +416,43 @@ function UserListView() {
           gap: 1,
         }}
       >
-        <CustomSearchField
-          placeholder="Search users..."
-          onSearch={handleSearch}
-        />
+        {/* Search and Filter Section */}
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <TextField
+            size="small"
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            onKeyPress={handleSearchKeyPress}
+            sx={{ minWidth: 250 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={handleClearSearch}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Autocomplete
+            size="small"
+            options={roles}
+            getOptionLabel={(option) => option.name}
+            value={selectedRole}
+            onChange={handleRoleChange}
+            sx={{ minWidth: 200 }}
+            renderInput={(params) => (
+              <TextField {...params} placeholder="Filter by Role" />
+            )}
+          />
+        </Box>
+        {/* Action Buttons */}
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <CustomButton
             requiredPermission={UserPermission.EMPLOYEE_MANAGEMENT}

@@ -6,7 +6,10 @@ import PauseIcon from "@mui/icons-material/Pause";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
-import { selectProject } from "../../../../../redux/project/project.slice";
+import {
+  selectProject,
+  resetProjectState,
+} from "../../../../../redux/project/project.slice";
 import { getProjectsByEmployeeId } from "../../../../../services/project.service";
 import { Link } from "react-router-dom";
 import { ProjectStatus } from "../../../../../data/project/project";
@@ -62,6 +65,9 @@ const Projects: React.FC = () => {
     }
   };
   useEffect(() => {
+    // Clear previous projects state to avoid flash of old data
+    dispatch(resetProjectState());
+
     if (user?.employeeId) {
       dispatch(
         getProjectsByEmployeeId({

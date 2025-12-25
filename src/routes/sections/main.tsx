@@ -16,6 +16,7 @@ import TaskDetailView from "../../pages/dashboard/sections/Projects/components/t
 import ProjectListView from "../../pages/dashboard/sections/Projects/view/project-list-view";
 import ProjectDetailsView from "../../pages/dashboard/sections/Projects/components/project-details-view";
 import SprintBoardView from "../../pages/dashboard/sections/Projects/components/sprint-board-view";
+import UserProfileView from "../../auth/view/profile-view";
 
 export const dashboardRoutes = [
   {
@@ -72,6 +73,11 @@ export const dashboardRoutes = [
         path: "employee/leave-requests",
         element: <LeaveRequestView />,
       },
+      {
+        path: "profile",
+        element: <UserProfileView />,
+      },
+
       {
         path: "request-leave",
         element: <EmployeeRequestLeaveView />,

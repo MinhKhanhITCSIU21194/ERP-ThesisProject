@@ -15,8 +15,6 @@ export enum ProjectPriority {
 }
 
 export enum ProjectMemberRole {
-  PROJECT_MANAGER = "PROJECT_MANAGER",
-  TECH_LEAD = "TECH_LEAD",
   DEVELOPER = "DEVELOPER",
   DESIGNER = "DESIGNER",
   QA = "QA",

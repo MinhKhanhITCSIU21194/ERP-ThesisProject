@@ -5,7 +5,7 @@ import { selectAuth } from "../../../redux/auth/auth.slice";
 
 const Dashboard: React.FC = () => {
   const { user } = useAppSelector(selectAuth);
-
+  console.log(user?.role);
   return (
     <Box sx={{ p: 3, width: "100%" }}>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>

@@ -97,6 +97,11 @@ function EmployeeInfoView({
       employeeId: employee?.employeeId,
     };
 
+    // Remove entity objects - only send IDs
+    delete employeeData.positionEntity;
+    delete employeeData.departments;
+    delete employeeData.user;
+
     // Remove empty arrays and empty strings to prevent backend issues
     if (employeeData.departmentIds && employeeData.departmentIds.length === 0) {
       delete employeeData.departmentIds;
