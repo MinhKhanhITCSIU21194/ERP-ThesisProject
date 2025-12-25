@@ -105,7 +105,11 @@ export class AuthService {
       // Find user by email with relationships (include role permissions)
       const user = await this.userRepository.findOne({
         where: { email: email.toLowerCase().trim() },
-        relations: ["role", "role.permissions"],
+        relations: [
+          "role",
+          "role.rolePermissions",
+          "role.rolePermissions.permission",
+        ],
       });
 
       if (!user) {
@@ -326,7 +330,11 @@ export class AuthService {
       console.log("Looking up user with email/userId:", email);
       let user = await this.userRepository.findOne({
         where: [{ email: email.toLowerCase().trim() }],
-        relations: ["role", "role.permissions"], // Load role with permissions
+        relations: [
+          "role",
+          "role.rolePermissions",
+          "role.rolePermissions.permission",
+        ], // Load role with permissions
       });
 
       // If not found by email, try by userId (in case email is actually a UUID)
@@ -334,7 +342,11 @@ export class AuthService {
         console.log("Trying to find user by UUID:", email);
         user = await this.userRepository.findOne({
           where: [{ userId: email }],
-          relations: ["role", "role.permissions"], // Load role with permissions
+          relations: [
+            "role",
+            "role.rolePermissions",
+            "role.rolePermissions.permission",
+          ], // Load role with permissions
         });
       }
 
@@ -650,7 +662,12 @@ export class AuthService {
           refreshToken: refreshToken,
           isActive: true,
         },
-        relations: ["user", "user.role", "user.role.permissions"],
+        relations: [
+          "user",
+          "user.role",
+          "user.role.rolePermissions",
+          "user.role.rolePermissions.permission",
+        ],
       });
 
       if (!session || session.expiresAt < new Date()) {
@@ -778,7 +795,11 @@ export class AuthService {
       // Find user by email
       const user = await this.userRepository.findOne({
         where: { email: email.toLowerCase().trim() },
-        relations: ["role", "role.permissions"],
+        relations: [
+          "role",
+          "role.rolePermissions",
+          "role.rolePermissions.permission",
+        ],
       });
 
       if (!user) {

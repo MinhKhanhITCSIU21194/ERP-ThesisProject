@@ -5,11 +5,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-  ManyToMany,
-  JoinTable,
   Index,
 } from "typeorm";
-import { Permission } from "./permission";
+import { RolePermission } from "./role-permission";
 
 @Entity("roles")
 export class Role {
@@ -40,24 +38,21 @@ export class Role {
   @OneToMany("User", "role")
   users!: any[];
 
-  @ManyToMany(() => Permission, (permission) => permission.roles, {
-    eager: true, // Automatically load permissions with role
+  @OneToMany(() => RolePermission, (rolePermission) => rolePermission.role, {
+    eager: true,
     cascade: true,
   })
-  @JoinTable({
-    name: "role_permissions",
-    joinColumn: { name: "roleId", referencedColumnName: "roleId" },
-    inverseJoinColumn: { name: "permissionId", referencedColumnName: "id" },
-  })
-  permissions!: Permission[];
+  rolePermissions!: RolePermission[];
 
   // Methods
   hasPermission(resource: string, action: string): boolean {
-    const permission = this.permissions?.find((p) => p.permission === resource);
-    if (!permission) return false;
+    const rolePermission = this.rolePermissions?.find(
+      (rp) => rp.permission?.permission === resource
+    );
+    if (!rolePermission) return false;
 
     // Map action to permission field
-    const actionMap: Record<string, keyof Permission> = {
+    const actionMap: Record<string, keyof RolePermission> = {
       view: "canView",
       read: "canRead",
       create: "canCreate",
@@ -74,7 +69,7 @@ export class Role {
     };
 
     const field = actionMap[action];
-    return field ? permission[field] === true : false;
+    return field ? rolePermission[field] === true : false;
   }
 
   canManage(resource: string): boolean {
@@ -86,7 +81,9 @@ export class Role {
     );
   }
 
-  getPermissionByResource(resource: string): Permission | undefined {
-    return this.permissions?.find((p) => p.permission === resource);
+  getPermissionByResource(resource: string): RolePermission | undefined {
+    return this.rolePermissions?.find(
+      (rp) => rp.permission?.permission === resource
+    );
   }
 }

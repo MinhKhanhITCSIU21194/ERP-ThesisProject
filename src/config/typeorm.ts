@@ -19,6 +19,7 @@ import { SprintMember } from "../models/entities/sprint-member";
 import { TaskAttachment } from "../models/entities/task-attachment";
 import { TaskComment } from "../models/entities/task-comment";
 import { ProjectMember } from "../models/entities/project-member";
+import { RolePermission } from "../models";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ export const AppDataSource = new DataSource({
     Permission,
     SprintMember,
     ProjectMember,
+    RolePermission,
     TaskAttachment,
     TaskComment,
     Session,

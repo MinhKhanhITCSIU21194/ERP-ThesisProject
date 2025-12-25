@@ -1,15 +1,18 @@
 import { AppDataSource } from "../config/typeorm";
 import { Role } from "../models/entities/role";
 import { Permission } from "../models/entities/permission";
+import { RolePermission } from "../models/entities/role-permission";
 import { Repository } from "typeorm";
 
 export class RoleService {
   private roleRepository: Repository<Role>;
   private permissionRepository: Repository<Permission>;
+  private rolePermissionRepository: Repository<RolePermission>;
 
   constructor() {
     this.roleRepository = AppDataSource.getRepository(Role);
     this.permissionRepository = AppDataSource.getRepository(Permission);
+    this.rolePermissionRepository = AppDataSource.getRepository(RolePermission);
   }
 
   /**
@@ -17,7 +20,7 @@ export class RoleService {
    */
   async getRoles(pageIndex: number = 0, pageSize: number = 10) {
     const [roles, total] = await this.roleRepository.findAndCount({
-      relations: ["permissions", "users"],
+      relations: ["rolePermissions", "rolePermissions.permission", "users"],
       skip: pageIndex * pageSize,
       take: pageSize,
       order: { createdAt: "DESC" },
@@ -27,6 +30,38 @@ export class RoleService {
       roles: roles.map((role) => ({
         ...role,
         userCount: role.users?.length || 0,
+        // Map rolePermissions to permissions format for frontend compatibility
+        permissions:
+          role.rolePermissions?.map((rp) => ({
+            id: rp.permissionId,
+            permission: rp.permission.permission,
+            name: rp.permission.name,
+            canView: rp.canView,
+            canRead: rp.canRead,
+            canCreate: rp.canCreate,
+            canUpdate: rp.canUpdate,
+            canDelete: rp.canDelete,
+            canPermanentlyDelete: rp.canPermanentlyDelete,
+            canSetPermission: rp.canSetPermission,
+            canImport: rp.canImport,
+            canExport: rp.canExport,
+            canSubmit: rp.canSubmit,
+            canCancel: rp.canCancel,
+            canApprove: rp.canApprove,
+            canReject: rp.canReject,
+            canAssign: rp.canAssign,
+            canViewSalary: rp.canViewSalary,
+            canEditSalary: rp.canEditSalary,
+            canViewBenefit: rp.canViewBenefit,
+            canReport: rp.canReport,
+            canViewPartial: rp.canViewPartial,
+            canViewBelongTo: rp.canViewBelongTo,
+            canViewOwner: rp.canViewOwner,
+            createdBy: rp.createdBy,
+            updatedBy: rp.updatedBy,
+            createdAt: rp.createdAt,
+            updatedAt: rp.updatedAt,
+          })) || [],
       })),
       total,
       pageIndex,
@@ -40,7 +75,7 @@ export class RoleService {
   async getRoleById(roleId: number): Promise<Role | null> {
     return await this.roleRepository.findOne({
       where: { roleId },
-      relations: ["permissions", "users"],
+      relations: ["rolePermissions", "rolePermissions.permission", "users"],
     });
   }
 
@@ -50,7 +85,32 @@ export class RoleService {
   async createRole(data: {
     name: string;
     description?: string;
-    permissionIds: number[];
+    permissionIds?: number[];
+    permissions?: Array<{
+      id: number;
+      permission: string;
+      canView?: boolean;
+      canRead?: boolean;
+      canCreate?: boolean;
+      canUpdate?: boolean;
+      canDelete?: boolean;
+      canPermanentlyDelete?: boolean;
+      canSetPermission?: boolean;
+      canImport?: boolean;
+      canExport?: boolean;
+      canSubmit?: boolean;
+      canCancel?: boolean;
+      canApprove?: boolean;
+      canReject?: boolean;
+      canAssign?: boolean;
+      canViewSalary?: boolean;
+      canEditSalary?: boolean;
+      canViewBenefit?: boolean;
+      canReport?: boolean;
+      canViewPartial?: boolean;
+      canViewBelongTo?: boolean;
+      canViewOwner?: boolean;
+    }>;
     createdBy?: string;
   }): Promise<Role> {
     // Check if role name already exists
@@ -62,24 +122,63 @@ export class RoleService {
       throw new Error(`Role with name "${data.name}" already exists`);
     }
 
-    // Fetch permissions
-    const permissions = await this.permissionRepository.findByIds(
-      data.permissionIds
-    );
-
-    if (permissions.length !== data.permissionIds.length) {
-      throw new Error("Some permissions not found");
-    }
-
     // Create role
     const role = this.roleRepository.create({
       name: data.name,
       description: data.description,
       createdBy: data.createdBy,
-      permissions,
     });
 
-    return await this.roleRepository.save(role);
+    const savedRole = await this.roleRepository.save(role);
+
+    // Handle permissions - full permission objects with individual flags
+    if (data.permissions && data.permissions.length > 0) {
+      const rolePermissions: RolePermission[] = [];
+
+      for (const perm of data.permissions) {
+        const permission = await this.permissionRepository.findOne({
+          where: { id: perm.id },
+        });
+
+        if (!permission) {
+          throw new Error(`Permission with ID ${perm.id} not found`);
+        }
+
+        const rolePermission = this.rolePermissionRepository.create({
+          roleId: savedRole.roleId,
+          permissionId: permission.id,
+          canView: perm.canView || false,
+          canRead: perm.canRead || false,
+          canCreate: perm.canCreate || false,
+          canUpdate: perm.canUpdate || false,
+          canDelete: perm.canDelete || false,
+          canPermanentlyDelete: perm.canPermanentlyDelete || false,
+          canSetPermission: perm.canSetPermission || false,
+          canImport: perm.canImport || false,
+          canExport: perm.canExport || false,
+          canSubmit: perm.canSubmit || false,
+          canCancel: perm.canCancel || false,
+          canApprove: perm.canApprove || false,
+          canReject: perm.canReject || false,
+          canAssign: perm.canAssign || false,
+          canViewSalary: perm.canViewSalary || false,
+          canEditSalary: perm.canEditSalary || false,
+          canViewBenefit: perm.canViewBenefit || false,
+          canReport: perm.canReport || false,
+          canViewPartial: perm.canViewPartial || false,
+          canViewBelongTo: perm.canViewBelongTo || false,
+          canViewOwner: perm.canViewOwner || false,
+          createdBy: data.createdBy,
+        });
+
+        rolePermissions.push(rolePermission);
+      }
+
+      await this.rolePermissionRepository.save(rolePermissions);
+    }
+
+    // Return role with permissions loaded
+    return (await this.getRoleById(savedRole.roleId))!;
   }
 
   /**
@@ -91,7 +190,33 @@ export class RoleService {
       name?: string;
       description?: string;
       permissionIds?: number[];
+      permissions?: Array<{
+        id: number;
+        permission: string;
+        canView?: boolean;
+        canRead?: boolean;
+        canCreate?: boolean;
+        canUpdate?: boolean;
+        canDelete?: boolean;
+        canPermanentlyDelete?: boolean;
+        canSetPermission?: boolean;
+        canImport?: boolean;
+        canExport?: boolean;
+        canSubmit?: boolean;
+        canCancel?: boolean;
+        canApprove?: boolean;
+        canReject?: boolean;
+        canAssign?: boolean;
+        canViewSalary?: boolean;
+        canEditSalary?: boolean;
+        canViewBenefit?: boolean;
+        canReport?: boolean;
+        canViewPartial?: boolean;
+        canViewBelongTo?: boolean;
+        canViewOwner?: boolean;
+      }>;
       isActive?: boolean;
+      updatedBy?: string;
     }
   ): Promise<Role> {
     const role = await this.getRoleById(roleId);
@@ -116,20 +241,60 @@ export class RoleService {
     if (data.description !== undefined) role.description = data.description;
     if (data.isActive !== undefined) role.isActive = data.isActive;
 
-    // Update permissions if provided
-    if (data.permissionIds) {
-      const permissions = await this.permissionRepository.findByIds(
-        data.permissionIds
-      );
+    await this.roleRepository.save(role);
 
-      if (permissions.length !== data.permissionIds.length) {
-        throw new Error("Some permissions not found");
+    // Update permissions if provided
+    if (data.permissions && data.permissions.length > 0) {
+      // Delete all existing role permissions for this role
+      await this.rolePermissionRepository.delete({ roleId: role.roleId });
+
+      // Create new role permissions
+      const rolePermissions: RolePermission[] = [];
+
+      for (const perm of data.permissions) {
+        const permission = await this.permissionRepository.findOne({
+          where: { id: perm.id },
+        });
+
+        if (!permission) {
+          throw new Error(`Permission with ID ${perm.id} not found`);
+        }
+
+        const rolePermission = this.rolePermissionRepository.create({
+          roleId: role.roleId,
+          permissionId: permission.id,
+          canView: perm.canView || false,
+          canRead: perm.canRead || false,
+          canCreate: perm.canCreate || false,
+          canUpdate: perm.canUpdate || false,
+          canDelete: perm.canDelete || false,
+          canPermanentlyDelete: perm.canPermanentlyDelete || false,
+          canSetPermission: perm.canSetPermission || false,
+          canImport: perm.canImport || false,
+          canExport: perm.canExport || false,
+          canSubmit: perm.canSubmit || false,
+          canCancel: perm.canCancel || false,
+          canApprove: perm.canApprove || false,
+          canReject: perm.canReject || false,
+          canAssign: perm.canAssign || false,
+          canViewSalary: perm.canViewSalary || false,
+          canEditSalary: perm.canEditSalary || false,
+          canViewBenefit: perm.canViewBenefit || false,
+          canReport: perm.canReport || false,
+          canViewPartial: perm.canViewPartial || false,
+          canViewBelongTo: perm.canViewBelongTo || false,
+          canViewOwner: perm.canViewOwner || false,
+          updatedBy: data.updatedBy,
+        });
+
+        rolePermissions.push(rolePermission);
       }
 
-      role.permissions = permissions;
+      await this.rolePermissionRepository.save(rolePermissions);
     }
 
-    return await this.roleRepository.save(role);
+    // Return role with permissions loaded
+    return (await this.getRoleById(role.roleId))!;
   }
 
   /**

@@ -84,7 +84,7 @@ class RoleController {
    */
   async createRole(req: AuthRequest, res: Response) {
     try {
-      const { name, description, permissionIds } = req.body;
+      const { name, description, permissionIds, permissions } = req.body;
 
       if (!name) {
         return res.status(400).json({
@@ -93,10 +93,14 @@ class RoleController {
         });
       }
 
-      if (!permissionIds || !Array.isArray(permissionIds)) {
+      // Accept either permissionIds (old format) or permissions (new format)
+      if (
+        (!permissionIds || !Array.isArray(permissionIds)) &&
+        (!permissions || !Array.isArray(permissions))
+      ) {
         return res.status(400).json({
           success: false,
-          message: "Permission IDs are required and must be an array",
+          message: "Either permissionIds or permissions array is required",
         });
       }
 
@@ -104,6 +108,7 @@ class RoleController {
         name,
         description,
         permissionIds,
+        permissions,
         createdBy: req.user?.userId,
       });
 
@@ -136,12 +141,14 @@ class RoleController {
         });
       }
 
-      const { name, description, permissionIds, isActive } = req.body;
+      const { name, description, permissionIds, permissions, isActive } =
+        req.body;
 
       const role = await this.roleService.updateRole(roleId, {
         name,
         description,
         permissionIds,
+        permissions,
         isActive,
       });
 

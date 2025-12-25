@@ -11,6 +11,7 @@ import { User } from "../models/entities/user";
 import { Role } from "../models/entities/role";
 import { NotificationType } from "../models/entities/notification";
 import { EmployeeDepartment } from "../models/entities/employee-department";
+import { Department } from "../models/entities/department";
 import crypto from "crypto";
 import { NotificationService } from "./notification.service";
 import nodemailer from "nodemailer";
@@ -441,7 +442,7 @@ export class EmployeeService {
         `Cleaning up orphaned user account from soft-deleted employee: ${data.email}`
       );
       await this.userRepository.delete(softDeletedEmployee.userId);
-      
+
       // Also permanently delete the soft-deleted employee to clean up completely
       await this.employeeRepository.delete(softDeletedEmployee.employeeId);
     }
@@ -451,7 +452,7 @@ export class EmployeeService {
       const userWithCode = await this.userRepository.findOne({
         where: { employeeCode: data.employeeCode },
       });
-      
+
       if (userWithCode) {
         console.log(
           `Cleaning up orphaned user account with employeeCode: ${data.employeeCode}`
@@ -607,11 +608,12 @@ export class EmployeeService {
       const adminUsers = await this.userRepository
         .createQueryBuilder("user")
         .innerJoinAndSelect("user.role", "role")
-        .innerJoin("role.permissions", "permissions")
-        .where("permissions.permission = :permission", {
+        .innerJoin("role.rolePermissions", "rolePermissions")
+        .innerJoin("rolePermissions.permission", "permission")
+        .where("permission.permission = :permission", {
           permission: "USER_MANAGEMENT",
         })
-        .andWhere("permissions.canCreate = :canCreate", { canCreate: true })
+        .andWhere("rolePermissions.canCreate = :canCreate", { canCreate: true })
         .getMany();
 
       // Create notification for each admin
@@ -671,6 +673,13 @@ export class EmployeeService {
 
     // Update employee basic data
     Object.assign(employee, employeeData);
+
+    // If positionId is being updated, clear the cached positionEntity
+    // to force TypeORM to reload the new position
+    if (employeeData.positionId !== undefined) {
+      employee.positionEntity = undefined;
+    }
+
     const updatedEmployee = await this.employeeRepository.save(employee);
 
     // Handle department relationships if departmentIds is provided
@@ -889,12 +898,73 @@ export class EmployeeService {
     // Get the manager's primary department ID from the EmployeeDepartment junction table
     const departmentId = manager.departments[0].departmentId;
 
-    // Return all employees in the same department
-    const result = await this.getEmployees(
-      pagination || { pageIndex: 0, pageSize: 100 },
-      { departmentId, search }
-    );
-    return result;
+    // Recursively get all child department IDs
+    const departmentIds = await this.getAllDepartmentIds(departmentId);
+
+    // Get all employees from the department and its child departments
+    const pageIndex = pagination?.pageIndex || 0;
+    const pageSize = pagination?.pageSize || 100;
+
+    const queryBuilder = this.employeeRepository
+      .createQueryBuilder("employee")
+      .leftJoinAndSelect("employee.departments", "empDept")
+      .leftJoinAndSelect("empDept.department", "department")
+      .where("employee.employmentStatus = :status", { status: "ACTIVE" })
+      .andWhere("empDept.departmentId IN (:...departmentIds)", {
+        departmentIds,
+      });
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
+        "(employee.firstName ILIKE :search OR employee.lastName ILIKE :search OR employee.email ILIKE :search)",
+        { search: `%${search.trim()}%` }
+      );
+    }
+
+    // Get total count
+    const total = await queryBuilder.getCount();
+
+    // Apply pagination and get results
+    const employees = await queryBuilder
+      .orderBy("employee.firstName", "ASC")
+      .skip(pageIndex * pageSize)
+      .take(pageSize)
+      .getMany();
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      data: employees,
+      total,
+      pageIndex,
+      pageSize,
+      totalPages,
+      hasNext: pageIndex < totalPages - 1,
+      hasPrevious: pageIndex > 0,
+    };
+  }
+
+  /**
+   * Recursively get all department IDs including the parent and all child departments
+   */
+  private async getAllDepartmentIds(departmentId: string): Promise<string[]> {
+    const departmentRepo = AppDataSource.getRepository(Department);
+    const allIds: string[] = [departmentId];
+
+    // Get immediate child departments
+    const childDepartments = await departmentRepo.find({
+      where: { parentId: departmentId, isActive: true },
+      select: ["id"],
+    });
+
+    // Recursively get children of children
+    for (const child of childDepartments) {
+      const childIds = await this.getAllDepartmentIds(child.id);
+      allIds.push(...childIds);
+    }
+
+    return allIds;
   }
 
   /**

@@ -89,13 +89,13 @@ router.get(
 /**
  * @route   GET /api/employees/manager/:managerId
  * @desc    Get employees by reporting manager
- * @access  Private (requires authentication and view permission)
+ * @access  Private (requires authentication and project management create permission)
  * @query   pageIndex, pageSize, sortBy, sortOrder
  */
 router.get(
   "/manager/:managerId",
   authenticateToken,
-  requirePermission("EMPLOYEE_MANAGEMENT", "canView"),
+  requirePermission("PROJECT_MANAGEMENT", "canCreate"),
   employeeController.getEmployeesByManager
 );
 

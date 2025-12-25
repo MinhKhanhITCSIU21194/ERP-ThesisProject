@@ -4,7 +4,31 @@ import { authenticateToken } from "../middleware/auth.middleware";
 
 const usersRoutes = Router();
 
-// All user routes require authentication
+/**
+ * Public routes (no authentication required)
+ */
+
+/**
+ * @route   GET /api/users/setup/validate/:token
+ * @desc    Validate user setup token
+ * @access  Public
+ */
+usersRoutes.get(
+  "/setup/validate/:token",
+  userController.validateSetupToken.bind(userController)
+);
+
+/**
+ * @route   POST /api/users/setup/complete
+ * @desc    Complete user setup with new password
+ * @access  Public
+ */
+usersRoutes.post(
+  "/setup/complete",
+  userController.completeUserSetup.bind(userController)
+);
+
+// All other user routes require authentication
 usersRoutes.use(authenticateToken);
 
 /**
@@ -30,6 +54,14 @@ usersRoutes.get(
  * @access  Private
  */
 usersRoutes.get("/", userController.getAllUsers.bind(userController));
+
+/**
+ * @route   POST /api/users
+ * @desc    Create a new user (auto-generates password and sends setup email)
+ * @body    { firstName, lastName, email, username?, roleId, employeeCode? }
+ * @access  Private
+ */
+usersRoutes.post("/", userController.createUser.bind(userController));
 
 /**
  * @route   GET /api/users/:id
@@ -66,6 +98,16 @@ usersRoutes.patch(
 usersRoutes.patch(
   "/:id/role",
   userController.updateUserRole.bind(userController)
+);
+
+/**
+ * @route   POST /api/users/:id/resend-setup
+ * @desc    Resend setup email to user
+ * @access  Private
+ */
+usersRoutes.post(
+  "/:id/resend-setup",
+  userController.resendSetupEmail.bind(userController)
 );
 
 export default usersRoutes;

@@ -21,7 +21,7 @@ export const requirePermission = (resource: string, action: string) => {
       const { role } = req.user;
 
       // Check if role has permissions loaded
-      if (!role || !role.permissions) {
+      if (!role || !role.rolePermissions) {
         return res.status(403).json({
           success: false,
           error: "Forbidden",
@@ -30,11 +30,11 @@ export const requirePermission = (resource: string, action: string) => {
       }
 
       // Find the permission for the resource
-      const permission = role.permissions.find(
-        (p) => p.permission === resource
+      const rolePermission = role.rolePermissions.find(
+        (rp) => rp.permission?.permission === resource
       );
 
-      if (!permission) {
+      if (!rolePermission) {
         return res.status(403).json({
           success: false,
           error: "Forbidden",
@@ -43,7 +43,8 @@ export const requirePermission = (resource: string, action: string) => {
       }
 
       // Check if the user has the required action permission
-      const hasPermission = permission[action as keyof typeof permission];
+      const hasPermission =
+        rolePermission[action as keyof typeof rolePermission];
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -86,7 +87,7 @@ export const requireAnyPermission = (resource: string, actions: string[]) => {
 
       const { role } = req.user;
 
-      if (!role || !role.permissions) {
+      if (!role || !role.rolePermissions) {
         return res.status(403).json({
           success: false,
           error: "Forbidden",
@@ -94,11 +95,11 @@ export const requireAnyPermission = (resource: string, actions: string[]) => {
         });
       }
 
-      const permission = role.permissions.find(
-        (p) => p.permission === resource
+      const rolePermission = role.rolePermissions.find(
+        (rp) => rp.permission?.permission === resource
       );
 
-      if (!permission) {
+      if (!rolePermission) {
         return res.status(403).json({
           success: false,
           error: "Forbidden",
@@ -108,7 +109,7 @@ export const requireAnyPermission = (resource: string, actions: string[]) => {
 
       // Check if user has at least one of the required permissions
       const hasAnyPermission = actions.some(
-        (action) => permission[action as keyof typeof permission]
+        (action) => rolePermission[action as keyof typeof rolePermission]
       );
 
       if (!hasAnyPermission) {
@@ -151,7 +152,7 @@ export const requireAllPermissions = (resource: string, actions: string[]) => {
 
       const { role } = req.user;
 
-      if (!role || !role.permissions) {
+      if (!role || !role.rolePermissions) {
         return res.status(403).json({
           success: false,
           error: "Forbidden",
@@ -159,11 +160,11 @@ export const requireAllPermissions = (resource: string, actions: string[]) => {
         });
       }
 
-      const permission = role.permissions.find(
-        (p) => p.permission === resource
+      const rolePermission = role.rolePermissions.find(
+        (rp) => rp.permission?.permission === resource
       );
 
-      if (!permission) {
+      if (!rolePermission) {
         return res.status(403).json({
           success: false,
           error: "Forbidden",
@@ -173,7 +174,7 @@ export const requireAllPermissions = (resource: string, actions: string[]) => {
 
       // Check if user has all of the required permissions
       const hasAllPermissions = actions.every(
-        (action) => permission[action as keyof typeof permission]
+        (action) => rolePermission[action as keyof typeof rolePermission]
       );
 
       if (!hasAllPermissions) {

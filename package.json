@@ -11,6 +11,7 @@
     "seed:permissions": "ts-node src/scripts/seed-permissions.ts",
     "seed:complete": "ts-node src/scripts/seed-complete-with-contracts.ts",
     "seed:projects": "ts-node src/scripts/seed-projects.ts",
+    "set:admin-permissions": "ts-node src/scripts/set-admin-permissions.ts",
     "migrate": "ts-node src/scripts/run-migrations.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

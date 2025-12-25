@@ -66,6 +66,12 @@ export class User {
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
   passwordChangedAt!: Date;
 
+  @Column({ type: "varchar", length: 255, nullable: true })
+  setupToken?: string;
+
+  @Column({ type: "timestamp", nullable: true })
+  setupTokenExpiry?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 

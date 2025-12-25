@@ -236,6 +236,12 @@ export const validateSession = async (req: Request, res: Response) => {
       cookieService.setSessionCookie(res, sessionId);
     }
 
+    // Format role with permissions for frontend
+    const { formatRole } = await import("../utils/formatters");
+    const formattedRole = result.user!.role
+      ? formatRole(result.user!.role)
+      : null;
+
     // Return user information with tokens
     return res.json({
       success: true,
@@ -253,7 +259,7 @@ export const validateSession = async (req: Request, res: Response) => {
         fullName: `${result.user!.firstName} ${result.user!.lastName}`,
         employeeId: (result.user as any).employeeId, // Employee UUID for API calls
         employeeCode: result.user!.employeeCode, // Employee code string
-        role: result.user!.role,
+        role: formattedRole,
         isEmailVerified: result.user!.isEmailVerified,
         lastLogin: result.user!.lastLogin,
         createdAt: result.user!.createdAt,

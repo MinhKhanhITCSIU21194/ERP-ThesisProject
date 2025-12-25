@@ -2,6 +2,7 @@
 export { User } from "./entities/user";
 export { Role } from "./entities/role";
 export { Permission } from "./entities/permission";
+export { RolePermission } from "./entities/role-permission";
 export { Session } from "./entities/session";
 export { Notification, NotificationType } from "./entities/notification";
 
@@ -43,6 +44,7 @@ export {
 import { User } from "./entities/user";
 import { Role } from "./entities/role";
 import { Permission } from "./entities/permission";
+import { RolePermission } from "./entities/role-permission";
 import { Session } from "./entities/session";
 import { Notification } from "./entities/notification";
 import {
@@ -67,6 +69,7 @@ export const entities = [
   User,
   Role,
   Permission,
+  RolePermission,
   Session,
   Notification,
   EmailVerification,

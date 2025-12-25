@@ -4,10 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToMany,
+  OneToMany,
   Index,
 } from "typeorm";
-import { Role } from "./role";
+import { RolePermission } from "./role-permission";
 
 @Entity("permissions")
 export class Permission {
@@ -116,8 +116,11 @@ export class Permission {
   isDeleted!: boolean;
 
   // Relationships
-  @ManyToMany(() => Role, (role) => role.permissions)
-  roles!: Role[];
+  @OneToMany(
+    () => RolePermission,
+    (rolePermission) => rolePermission.permission
+  )
+  rolePermissions!: RolePermission[];
 
   // Helper methods
   hasAnyPermission(): boolean {
