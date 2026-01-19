@@ -317,21 +317,23 @@ class LeaveRequestService {
   }
 
   /**
-   * Get all managers (potential approvers)
+   * Get all users who can approve leave requests based on permissions
    */
   async getApprovers(): Promise<User[]> {
-    // Get all employees who are managers in departments
-    const managers = await this.employeeRepository
-      .createQueryBuilder("employee")
-      .leftJoinAndSelect("employee.user", "user")
-      .leftJoinAndSelect("employee.departments", "dept")
-      .where("dept.isManager = :isManager", { isManager: true })
-      .andWhere("user.userId IS NOT NULL")
+    // Get all users with their roles and permissions
+    const usersWithPermissions = await this.userRepository
+      .createQueryBuilder("user")
+      .leftJoinAndSelect("user.role", "role")
+      .leftJoinAndSelect("role.rolePermissions", "rolePermission")
+      .leftJoinAndSelect("rolePermission.permission", "permission")
+      .where("user.isActive = :isActive", { isActive: true })
+      .andWhere("permission.permission = :permissionName", {
+        permissionName: "LEAVE_MANAGEMENT",
+      })
+      .andWhere("rolePermission.canApprove = :canApprove", { canApprove: true })
       .getMany();
 
-    return managers
-      .filter((emp: Employee) => emp.user)
-      .map((emp: Employee) => emp.user as User);
+    return usersWithPermissions;
   }
 }
 

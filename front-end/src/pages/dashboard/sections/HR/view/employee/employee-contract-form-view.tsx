@@ -11,8 +11,14 @@ import {
   Box,
   Typography,
   IconButton,
+  Select,
+  FormControl,
+  InputLabel,
+  FormHelperText,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
+import dayjs, { Dayjs } from "dayjs";
+import CustomDatePicker from "../../../../../components/DatePicker";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import {
   createContract,
@@ -82,7 +88,7 @@ function EmployeeContractFormView({
     workingType: "ONSITE",
     startDate: new Date(),
     endDate: undefined,
-    status: ContractStatus.PENDING,
+    status: ContractStatus.ACTIVE,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -131,7 +137,7 @@ function EmployeeContractFormView({
           workingType: "ONSITE",
           startDate: new Date(),
           endDate: undefined,
-          status: ContractStatus.PENDING,
+          status: ContractStatus.ACTIVE,
         });
         setFileName("");
         setSelectedFile(null);
@@ -346,64 +352,62 @@ function EmployeeContractFormView({
               ))}
             </TextField>
 
-            <TextField
+            <FormControl
               fullWidth
               required={!isViewMode}
-              select={!isViewMode}
-              label="Status"
-              value={formData.status}
-              onChange={(e) => handleChange("status", e.target.value)}
-              disabled={isViewMode || isLoading}
-              InputProps={{ readOnly: isViewMode }}
-              InputLabelProps={{ shrink: true }}
+              error={Boolean(errors.status)}
             >
-              {CONTRACT_STATUSES.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
+              <InputLabel id="status-label">Status</InputLabel>
+              <Select
+                labelId="status-label"
+                label="Status"
+                defaultValue={ContractStatus.ACTIVE}
+                value={formData.status}
+                onChange={(e) => handleChange("status", e.target.value)}
+                disabled={isViewMode || isLoading}
+                readOnly={isViewMode}
+              >
+                {CONTRACT_STATUSES.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.status && (
+                <FormHelperText>{errors.status}</FormHelperText>
+              )}
+            </FormControl>
 
-            <TextField
-              fullWidth
-              required={!isViewMode}
-              type="date"
+            <CustomDatePicker
               label="Start Date"
-              value={
-                formData.startDate
-                  ? new Date(formData.startDate).toISOString().split("T")[0]
-                  : ""
-              }
-              onChange={(e) =>
-                handleChange("startDate", new Date(e.target.value))
-              }
-              error={Boolean(errors.startDate)}
-              helperText={errors.startDate}
-              disabled={isViewMode || isLoading}
-              InputProps={{ readOnly: isViewMode }}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              fullWidth
-              type="date"
-              label="End Date (Optional)"
-              value={
-                formData.endDate
-                  ? new Date(formData.endDate).toISOString().split("T")[0]
-                  : ""
-              }
-              onChange={(e) =>
+              value={formData.startDate ? dayjs(formData.startDate) : null}
+              onChange={(newValue: Dayjs | null) =>
                 handleChange(
-                  "endDate",
-                  e.target.value ? new Date(e.target.value) : undefined
+                  "startDate",
+                  newValue ? newValue.toDate() : new Date()
                 )
               }
+              disabled={isViewMode || isLoading}
+              required={!isViewMode}
+              error={Boolean(errors.startDate)}
+              helperText={errors.startDate}
+            />
+
+            <CustomDatePicker
+              label="End Date (Optional)"
+              value={formData.endDate ? dayjs(formData.endDate) : null}
+              onChange={(newValue: Dayjs | null) =>
+                handleChange(
+                  "endDate",
+                  newValue ? newValue.toDate() : undefined
+                )
+              }
+              minDate={
+                formData.startDate ? dayjs(formData.startDate) : undefined
+              }
+              disabled={isViewMode || isLoading}
               error={Boolean(errors.endDate)}
               helperText={errors.endDate}
-              disabled={isViewMode || isLoading}
-              InputProps={{ readOnly: isViewMode }}
-              InputLabelProps={{ shrink: true }}
             />
 
             {/* Contract File Upload */}

@@ -43,6 +43,7 @@ export type Employee = {
   phoneNumber?: string;
   hireDate?: string;
   firstName?: string;
+  middleName?: string;
   lastName?: string;
   fullName?: string;
   photo?: string;

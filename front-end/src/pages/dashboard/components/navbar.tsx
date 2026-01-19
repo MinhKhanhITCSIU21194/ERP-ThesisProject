@@ -37,7 +37,7 @@ const EMPLOYEE_SUBTABS = [
     name: "List of Employee",
     icon: GroupIcon,
     path: "/dashboard/employee/list",
-    requiredRole: UserPermission.EMPLOYEE_MANAGEMENT,
+    requiredPermission: UserPermission.EMPLOYEE_MANAGEMENT,
     canView: true,
     canUpdate: true,
   },
@@ -45,14 +45,14 @@ const EMPLOYEE_SUBTABS = [
     name: "Contract Management",
     icon: WorkHistoryIcon,
     path: "/dashboard/employee/contract",
-    requiredRole: UserPermission.CONTRACT_MANAGEMENT,
+    requiredPermission: UserPermission.CONTRACT_MANAGEMENT,
     canView: true,
   },
   {
     name: "Leave Requests",
     icon: EventBusyIcon,
     path: "/dashboard/employee/leave-requests",
-    requiredRole: UserPermission.LEAVE_MANAGEMENT,
+    requiredPermission: UserPermission.LEAVE_MANAGEMENT,
     canView: true,
   },
 ];
@@ -62,36 +62,42 @@ const SETTINGS_SUBTABS = [
     name: "Department",
     icon: ApartmentIcon,
     path: "/admin/settings/department",
-    requiredRole: UserPermission.DEPARTMENT_MANAGEMENT,
+    requiredPermission: UserPermission.DEPARTMENT_MANAGEMENT,
     canView: true,
   },
-  { name: "Position", icon: PersonIcon, path: "/admin/settings/position" },
+  {
+    name: "Position",
+    icon: PersonIcon,
+    path: "/admin/settings/position",
+    requiredPermission: UserPermission.POSITION_MANAGEMENT,
+    canView: true,
+  },
   {
     name: "Holiday",
     icon: CalendarMonthIcon,
     path: "/admin/settings/holiday",
-    requiredRole: UserPermission.HOLIDAY_MANAGEMENT,
+    requiredPermission: UserPermission.HOLIDAY_MANAGEMENT,
     canView: true,
   },
   {
     name: "Leave Type",
     icon: CategoryIcon,
     path: "/admin/settings/leave-type",
-    requiredRole: UserPermission.LEAVE_TYPE_MANAGEMENT,
+    requiredPermission: UserPermission.LEAVE_TYPE_MANAGEMENT,
     canView: true,
   },
   {
     name: "User Management",
     icon: ManageAccountsIcon,
     path: "/admin/settings/user",
-    requiredRole: UserPermission.USER_MANAGEMENT,
+    requiredPermission: UserPermission.USER_MANAGEMENT,
     canView: true,
   },
   {
     name: "Role",
     icon: SecurityIcon,
     path: "/admin/settings/role",
-    requiredRole: UserPermission.ROLE_MANAGEMENT,
+    requiredPermission: UserPermission.ROLE_MANAGEMENT,
     canView: true,
   },
 ];
@@ -101,7 +107,7 @@ const TABS = [
     name: "Employee",
     icon: PeopleAltIcon,
     subTabs: EMPLOYEE_SUBTABS,
-    requiredRole: UserPermission.EMPLOYEE_MANAGEMENT,
+    requiredPermission: UserPermission.EMPLOYEE_MANAGEMENT,
     canView: true,
   },
   {
@@ -109,14 +115,14 @@ const TABS = [
     icon: AssignmentIcon,
     path: "/dashboard/projects",
     subTabs: [],
-    requiredRole: UserPermission.TASK_MANAGEMENT,
+    requiredPermission: UserPermission.TASK_MANAGEMENT,
     canView: true,
   },
   {
     name: "Settings",
     icon: SettingsIcon,
     subTabs: SETTINGS_SUBTABS,
-    requiredRole: UserPermission.USER_MANAGEMENT,
+    requiredPermission: UserPermission.USER_MANAGEMENT,
     canView: true,
   },
 ];
@@ -202,10 +208,10 @@ const NavbarItem = React.memo(
             <List sx={{ pl: 2, bgcolor: "#c0c0c0" }}>
               {tab.subTabs
                 .filter((sub: any) => {
-                  if (!sub.requiredRole) return true;
+                  if (!sub.requiredPermission) return true;
                   return user?.role.permissions.some(
                     (permission: any) =>
-                      permission.permission === sub.requiredRole &&
+                      permission.permission === sub.requiredPermission &&
                       permission.canView === sub.canView
                   );
                 })
@@ -261,9 +267,28 @@ function Navbar() {
   // Memoize filtered tabs to prevent re-filtering on every render
   const visibleTabs = useMemo(() => {
     const filtered = TABS.filter((tab) => {
+      // If tab has subtabs, check if user has permission for at least one subtab
+      if (tab.subTabs && tab.subTabs.length > 0) {
+        const hasAccessToAnySubtab = tab.subTabs.some((subTab: any) => {
+          // If no permission required, allow access
+          if (!subTab.requiredPermission) return true;
+
+          // Check if user has the required permission
+          return user?.role.permissions.some(
+            (permission: any) =>
+              permission.permission === subTab.requiredPermission &&
+              permission.canView === subTab.canView
+          );
+        });
+        return hasAccessToAnySubtab;
+      }
+
+      // For tabs without subtabs, check parent permission
+      if (!tab.requiredPermission) return true;
+
       const hasPermission = user?.role.permissions.some((permission) => {
         const match =
-          permission.permission === tab.requiredRole &&
+          permission.permission === tab.requiredPermission &&
           permission.canView === true;
         return match;
       });

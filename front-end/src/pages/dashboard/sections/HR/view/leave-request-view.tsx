@@ -155,14 +155,14 @@ function LeaveRequestView() {
       headerName: "Start Date",
       flex: 1,
       valueGetter: (value: any, row: LeaveRequest) =>
-        dayjs(row.startDate).format("MMM DD, YYYY"),
+        dayjs(row.startDate).format("DD-MM-YYYY"),
     },
     {
       field: "endDate",
       headerName: "End Date",
       flex: 1,
       valueGetter: (value: any, row: LeaveRequest) =>
-        dayjs(row.endDate).format("MMM DD, YYYY"),
+        dayjs(row.endDate).format("DD-MM-YYYY"),
     },
     {
       field: "totalDays",

@@ -4,6 +4,8 @@ import {
   closestCorners,
   DndContext,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
@@ -35,6 +37,8 @@ import {
   Select,
   TextField,
   IconButton,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import { ArrowBack, Add, Close } from "@mui/icons-material";
 import { useAppDispatch, useAppSelector } from "../../../../../redux/store";
@@ -45,6 +49,7 @@ import {
   updateTask,
   createTask,
   deleteTask,
+  getProjectById,
 } from "../../../../../services/project.service";
 import {
   Task,
@@ -52,10 +57,11 @@ import {
   TaskPriority,
   TaskType,
   Sprint,
+  ProjectMember,
 } from "../../../../../data/project/project";
 import { paths } from "../../../../../routes/paths";
 export const getPriorityColor = (
-  priority: TaskPriority
+  priority: TaskPriority,
 ): "default" | "primary" | "warning" | "error" => {
   switch (priority) {
     case TaskPriority.LOW:
@@ -116,6 +122,7 @@ function SprintBoardView() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   // Quick task creation state
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -127,6 +134,7 @@ function SprintBoardView() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -135,9 +143,21 @@ function SprintBoardView() {
     }
   }, [dispatch, id]);
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = async (task: Task) => {
     setSelectedTask(task);
     setShowTaskDialog(true);
+
+    // Fetch project members if not already loaded
+    if (currentSprint?.projectId && projectMembers.length === 0) {
+      try {
+        const result = await dispatch(getProjectById(currentSprint.projectId));
+        if (result.payload && (result.payload as any).members) {
+          setProjectMembers((result.payload as any).members);
+        }
+      } catch (error) {
+        console.error("Error fetching project members:", error);
+      }
+    }
   };
 
   const handleStatusChange = async (newStatus: TaskStatus) => {
@@ -149,7 +169,7 @@ function SprintBoardView() {
         updateTask({
           id: selectedTask.taskId,
           data: { status: newStatus },
-        })
+        }),
       );
       // Update local state
       setSelectedTask({ ...selectedTask, status: newStatus });
@@ -159,6 +179,42 @@ function SprintBoardView() {
       }
     } catch (error) {
       console.error("Error updating task status:", error);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleAssigneeChange = async (employeeId: string) => {
+    if (!selectedTask) return;
+
+    setUpdatingStatus(true);
+    try {
+      // Convert empty string to undefined for unassigning
+      const assignedTo = employeeId || undefined;
+
+      await dispatch(
+        updateTask({
+          id: selectedTask.taskId,
+          data: { assignedTo },
+        }),
+      );
+      // Refresh tasks to get updated assignee info
+      if (id) {
+        const result = await dispatch(
+          getTasksBySprint({ sprintId: id, limit: 100 }),
+        );
+        // Update selected task with new assignee
+        if (result.payload) {
+          const updatedTask = (result.payload as any).data.find(
+            (t: Task) => t.taskId === selectedTask.taskId,
+          );
+          if (updatedTask) {
+            setSelectedTask(updatedTask);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error updating task assignee:", error);
     } finally {
       setUpdatingStatus(false);
     }
@@ -194,7 +250,7 @@ function SprintBoardView() {
           status: createStatus,
           taskType: TaskType.TASK,
           priority: TaskPriority.MEDIUM,
-        })
+        }),
       );
       // Refresh tasks after creation
       await dispatch(getTasksBySprint({ sprintId: id, limit: 100 }));
@@ -238,9 +294,20 @@ function SprintBoardView() {
         distance: 8, // Minimum pixels to move before drag starts
         delay: 50,
       },
-    })
+    }),
   );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const taskId = active.id as string;
+    const task = tasks.find((t) => t.taskId === taskId);
+    if (task) {
+      setActiveTask(task);
+    }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveTask(null);
     if (!id) return;
     const { active, over } = event;
 
@@ -285,9 +352,7 @@ function SprintBoardView() {
       await dispatch(updateTask({ id: taskId, data: { status: newStatus } }));
       // Refresh after successful update
       if (id) {
-        setTimeout(() => {
-          dispatch(getTasksBySprint({ sprintId: id, limit: 100 }));
-        }, 300);
+        dispatch(getTasksBySprint({ sprintId: id, limit: 100 }));
       }
     } catch (error) {
       console.error("Error updating task status:", error);
@@ -298,7 +363,7 @@ function SprintBoardView() {
     }
   };
   const getStatusColor = (
-    status: TaskStatus
+    status: TaskStatus,
   ): "default" | "primary" | "info" | "success" | "error" => {
     switch (status) {
       case TaskStatus.TODO:
@@ -409,6 +474,7 @@ function SprintBoardView() {
           </Box>
         </Box>
         <DndContext
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -514,6 +580,94 @@ function SprintBoardView() {
               ))}
             </Box>
           </SortableContext>
+          <DragOverlay>
+            {activeTask ? (
+              <Card
+                sx={{
+                  opacity: 0.9,
+                  cursor: "grabbing",
+                  transform: "rotate(3deg)",
+                  boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+                }}
+              >
+                <CardContent sx={{ pb: 1, "&:last-child": { pb: 1 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1,
+                    }}
+                  >
+                    <Box sx={{ fontSize: "1.1rem" }}>
+                      {getTaskTypeIcon(activeTask.taskType)}
+                    </Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                        flex: 1,
+                      }}
+                    >
+                      {activeTask.title}
+                    </Typography>
+                  </Box>
+                  <Stack spacing={1}>
+                    <Box>
+                      Priority:{" "}
+                      <Chip
+                        size="small"
+                        label={activeTask.priority}
+                        color={getPriorityColor(activeTask.priority)}
+                        variant="outlined"
+                      />
+                    </Box>
+                    {activeTask.assignee && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}
+                      >
+                        <Avatar
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            fontSize: 12,
+                          }}
+                        >
+                          {activeTask.assignee.firstName[0]}
+                          {activeTask.assignee.lastName[0]}
+                        </Avatar>
+                        <Typography variant="caption">
+                          {activeTask.assignee.firstName}{" "}
+                          {activeTask.assignee.lastName}
+                        </Typography>
+                      </Box>
+                    )}
+                    {activeTask.storyPoints && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary">
+                          Story Points:
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          {activeTask.storyPoints}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </Paper>
 
@@ -575,24 +729,84 @@ function SprintBoardView() {
                   />
                 </Box>
 
-                {/* Assignee */}
-                {selectedTask.assignee && (
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Assigned to
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Avatar sx={{ width: 32, height: 32 }}>
-                        {selectedTask.assignee.firstName[0]}
-                        {selectedTask.assignee.lastName[0]}
-                      </Avatar>
-                      <Typography variant="body2">
-                        {selectedTask.assignee.firstName}{" "}
-                        {selectedTask.assignee.lastName}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
+                {/* Assignee Selection */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mb: 1, display: "block" }}
+                  >
+                    Assignee
+                  </Typography>
+                  <FormControl fullWidth size="small">
+                    <Select
+                      value={selectedTask.assignedTo || ""}
+                      onChange={(e) => handleAssigneeChange(e.target.value)}
+                      disabled={updatingStatus}
+                      displayEmpty
+                      renderValue={(value) => {
+                        if (!value) {
+                          return <em>Unassigned</em>;
+                        }
+                        const member = projectMembers.find(
+                          (m) => m.employeeId === value,
+                        );
+                        if (member?.employee) {
+                          return (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Avatar
+                                sx={{ width: 24, height: 24, fontSize: 12 }}
+                              >
+                                {member.employee.firstName[0]}
+                                {member.employee.lastName[0]}
+                              </Avatar>
+                              <Typography variant="body2">
+                                {member.employee.firstName}{" "}
+                                {member.employee.lastName}
+                              </Typography>
+                            </Box>
+                          );
+                        }
+                        return value;
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>Unassigned</em>
+                      </MenuItem>
+                      {projectMembers.map((member) => (
+                        <MenuItem
+                          key={member.memberId}
+                          value={member.employeeId}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <Avatar
+                              sx={{ width: 24, height: 24, fontSize: 12 }}
+                            >
+                              {member.employee?.firstName[0]}
+                              {member.employee?.lastName[0]}
+                            </Avatar>
+                            <Typography variant="body2">
+                              {member.employee?.firstName}{" "}
+                              {member.employee?.lastName}
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
 
                 {/* Story Points */}
                 {selectedTask.storyPoints && (

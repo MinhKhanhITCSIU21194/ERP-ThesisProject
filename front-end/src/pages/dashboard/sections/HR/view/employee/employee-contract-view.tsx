@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "../../../../../../redux/store";
 import {
   getContractsByEmployeeId,
@@ -230,7 +231,7 @@ function EmployeeContractView() {
       flex: 1,
       minWidth: 120,
       valueGetter: (value: any) => {
-        return value ? new Date(value).toLocaleDateString() : "N/A";
+        return value ? dayjs(value).format("DD-MM-YYYY") : "N/A";
       },
     },
     {
@@ -239,7 +240,7 @@ function EmployeeContractView() {
       flex: 1,
       minWidth: 120,
       valueGetter: (value: any) => {
-        return value ? new Date(value).toLocaleDateString() : "N/A";
+        return value ? dayjs(value).format("DD-MM-YYYY") : "N/A";
       },
     },
     {

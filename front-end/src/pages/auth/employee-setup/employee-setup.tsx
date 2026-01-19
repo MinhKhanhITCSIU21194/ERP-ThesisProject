@@ -23,7 +23,7 @@ const EmployeeSetup: React.FC = () => {
   const [searchParams] = useSearchParams();
   const queryToken = searchParams.get("token");
   const token = paramToken || queryToken;
-  const isUserSetup = !paramToken && queryToken; // User setup uses query params
+  const isUserSetup = !paramToken && !!queryToken; // User setup uses query params
 
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
@@ -89,7 +89,7 @@ const EmployeeSetup: React.FC = () => {
   };
 
   const handleSetupComplete = () => {
-    // Redirect to dashboard
+    alert("Verification successful! You can now log in.");
     navigate("/dashboard");
   };
 

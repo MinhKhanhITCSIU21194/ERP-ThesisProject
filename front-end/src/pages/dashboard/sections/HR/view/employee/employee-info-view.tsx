@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import dayjs, { Dayjs } from "dayjs";
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +21,7 @@ import {
   SelectChangeEvent,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import CustomDatePicker from "../../../../../components/DatePicker";
 import { Employee } from "../../../../../../data/employee/employee";
 import { getDepartmentList } from "../../../../../../services/department.service";
 import { getPositionList } from "../../../../../../services/position.service";
@@ -210,7 +212,7 @@ function EmployeeInfoView({
             <Divider sx={{ mb: 2 }} />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
               label="First Name"
@@ -223,7 +225,19 @@ function EmployeeInfoView({
             />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              label="Middle Name"
+              name="middleName"
+              value={formData.middleName || ""}
+              onChange={handleInputChange}
+              disabled={isViewMode}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
               label="Last Name"
@@ -263,15 +277,17 @@ function EmployeeInfoView({
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField
-              fullWidth
+            <CustomDatePicker
               label="Date of Birth"
-              name="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth || ""}
-              onChange={handleInputChange}
+              value={formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null}
+              onChange={(newValue: Dayjs | null) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  dateOfBirth: newValue ? newValue.format("YYYY-MM-DD") : "",
+                }))
+              }
               disabled={isViewMode}
-              InputLabelProps={{ shrink: true }}
+              maxDate={dayjs()}
             />
           </Grid>
 
@@ -300,7 +316,7 @@ function EmployeeInfoView({
               onChange={handleInputChange}
               disabled={isViewMode}
               multiline
-              rows={2}
+              rows={1}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -313,15 +329,16 @@ function EmployeeInfoView({
             <Divider sx={{ mb: 2 }} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField
-              fullWidth
+            <CustomDatePicker
               label="Hire Date"
-              name="hireDate"
-              type="date"
-              value={formData.hireDate || ""}
-              onChange={handleInputChange}
+              value={formData.hireDate ? dayjs(formData.hireDate) : null}
+              onChange={(newValue: Dayjs | null) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  hireDate: newValue ? newValue.format("YYYY-MM-DD") : "",
+                }))
+              }
               disabled={isViewMode}
-              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
@@ -394,24 +411,6 @@ function EmployeeInfoView({
               </Select>
             </FormControl>
           </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <FormControl fullWidth disabled={isViewMode}>
-              <InputLabel>Contract Type</InputLabel>
-              <Select
-                name="contractType"
-                value={formData.contractType || ""}
-                onChange={handleSelectChange}
-                label="Contract Type"
-              >
-                <MenuItem value="Full-time">Full-time</MenuItem>
-                <MenuItem value="Part-time">Part-time</MenuItem>
-                <MenuItem value="Contract">Contract</MenuItem>
-                <MenuItem value="Internship">Internship</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
           {/* Emergency Contact */}
           <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
             <Typography variant="h6" gutterBottom fontWeight={600}>

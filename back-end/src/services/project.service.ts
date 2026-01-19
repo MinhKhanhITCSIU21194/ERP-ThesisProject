@@ -100,7 +100,7 @@ export class ProjectService {
       // Filter projects where the employee is a project member (including project manager role)
       queryBuilder.andWhere(
         "(projectMembers.employeeId = :employeeId AND projectMembers.leftAt IS NULL)",
-        { employeeId: options.employeeId }
+        { employeeId: options.employeeId },
       );
     }
 
@@ -149,7 +149,7 @@ export class ProjectService {
       .leftJoinAndSelect("allMembers.employee", "memberEmployee")
       .where(
         "(projectMembers.employeeId = :employeeId AND projectMembers.leftAt IS NULL) OR project.projectManagerId = :employeeId",
-        { employeeId: options.employeeId }
+        { employeeId: options.employeeId },
       )
       .orderBy("project.lastAccessedAt", "DESC")
       .addOrderBy("project.createdAt", "DESC");
@@ -211,7 +211,7 @@ export class ProjectService {
     projectId: string,
     data: Partial<Project> & {
       members?: Array<{ employeeId: string; role: string }>;
-    }
+    },
   ): Promise<Project | null> {
     const project = await this.projectRepository.findOne({
       where: { projectId },
@@ -256,7 +256,7 @@ export class ProjectService {
       // Add new members or update/reactivate roles
       for (const newMember of newMembers) {
         const existingMember = existingMembers.find(
-          (m) => m.employeeId === newMember.employeeId
+          (m) => m.employeeId === newMember.employeeId,
         );
 
         if (existingMember) {
@@ -282,7 +282,7 @@ export class ProjectService {
           // Add new member (ensure projectId is set)
           console.log(
             "Adding NEW member - project.projectId:",
-            project.projectId
+            project.projectId,
           );
           console.log("New member data:", newMember);
           const projectMember = this.projectMemberRepository.create({
@@ -381,7 +381,7 @@ export class ProjectService {
       status?: SprintStatus;
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<{ sprints: Sprint[]; total: number }> {
     const queryBuilder = this.sprintRepository
       .createQueryBuilder("sprint")
@@ -434,7 +434,7 @@ export class ProjectService {
    */
   async updateSprint(
     sprintId: string,
-    data: Partial<Sprint>
+    data: Partial<Sprint>,
   ): Promise<Sprint | null> {
     const sprint = await this.sprintRepository.findOne({
       where: { sprintId },
@@ -471,7 +471,7 @@ export class ProjectService {
       storyPoints?: number;
       estimatedHours?: number;
     },
-    createdByUserId?: string
+    createdByUserId?: string,
   ): Promise<Task> {
     const task = this.taskRepository.create(data);
     const savedTask = await this.taskRepository.save(task);
@@ -530,7 +530,7 @@ export class ProjectService {
       assignedTo?: string;
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<{ tasks: Task[]; total: number }> {
     const queryBuilder = this.taskRepository
       .createQueryBuilder("task")
@@ -594,7 +594,7 @@ export class ProjectService {
   async updateTask(
     taskId: string,
     data: Partial<Task>,
-    updatedByUserId?: string
+    updatedByUserId?: string,
   ): Promise<Task | null> {
     const task = await this.taskRepository.findOne({
       where: { taskId },
@@ -606,8 +606,59 @@ export class ProjectService {
     const oldStatus = task.status;
     const oldAssignedTo = task.assignedTo;
 
-    Object.assign(task, data);
-    const updatedTask = await this.taskRepository.save(task);
+    console.log("Before update - task.assignedTo:", task.assignedTo);
+    console.log("Update data:", data);
+
+    // Explicitly update fields to avoid TypeORM relation issues
+    if ("assignedTo" in data) {
+      task.assignedTo = data.assignedTo;
+      // Clear the assignee relation so TypeORM will reload it
+      task.assignee = undefined;
+    }
+    if ("status" in data) {
+      task.status = data.status!;
+    }
+    if ("priority" in data) {
+      task.priority = data.priority!;
+    }
+    if ("taskType" in data) {
+      task.taskType = data.taskType!;
+    }
+    if ("title" in data) {
+      task.title = data.title!;
+    }
+    if ("description" in data) {
+      task.description = data.description;
+    }
+    if ("storyPoints" in data) {
+      task.storyPoints = data.storyPoints;
+    }
+    if ("estimatedHours" in data) {
+      task.estimatedHours = data.estimatedHours;
+    }
+    if ("actualHours" in data) {
+      task.actualHours = data.actualHours;
+    }
+
+    console.log(
+      "After explicit assignment - task.assignedTo:",
+      task.assignedTo,
+    );
+
+    await this.taskRepository.save(task);
+
+    console.log("After save - checking DB...");
+
+    // Reload task with updated relations
+    const updatedTask = await this.taskRepository.findOne({
+      where: { taskId },
+      relations: ["sprint", "sprint.project", "assignee", "assignee.user"],
+    });
+
+    console.log("Reloaded task - assignedTo:", updatedTask?.assignedTo);
+    console.log("Reloaded task - assignee:", updatedTask?.assignee);
+
+    if (!updatedTask) return null;
 
     // Send notifications for changes
     try {
@@ -621,15 +672,19 @@ export class ProjectService {
         : "System";
 
       // Notify on status change
-      if (data.status && oldStatus !== data.status && task.assignee?.user) {
+      if (
+        data.status &&
+        oldStatus !== data.status &&
+        updatedTask.assignee?.user
+      ) {
         await notificationService.notifyTaskStatusUpdated({
-          employeeUserId: task.assignee.user.userId,
-          taskTitle: task.title,
-          taskId: task.taskId,
+          employeeUserId: updatedTask.assignee.user.userId,
+          taskTitle: updatedTask.title,
+          taskId: updatedTask.taskId,
           oldStatus,
           newStatus: data.status,
-          projectName: task.sprint.project.name,
-          sprintName: task.sprint.name,
+          projectName: updatedTask.sprint.project.name,
+          sprintName: updatedTask.sprint.name,
           updatedByName,
           updatedByUserId,
         });
@@ -637,7 +692,7 @@ export class ProjectService {
         // If task is completed, notify sprint members
         if (data.status === TaskStatus.DONE) {
           const sprintMembers = await this.getActiveSprintMembers(
-            task.sprintId
+            updatedTask.sprintId,
           );
           const memberUserIds = sprintMembers
             .map((m) => m.employee?.user?.userId)
@@ -646,27 +701,25 @@ export class ProjectService {
           if (memberUserIds.length > 0 && updatedByUserId) {
             await notificationService.notifyTaskCompleted({
               teamMemberUserIds: memberUserIds,
-              taskTitle: task.title,
-              taskId: task.taskId,
+              taskTitle: updatedTask.title,
+              taskId: updatedTask.taskId,
               completedByName: updatedByName,
               completedByUserId: updatedByUserId,
-              projectName: task.sprint.project.name,
-              sprintName: task.sprint.name,
+              projectName: updatedTask.sprint.project.name,
+              sprintName: updatedTask.sprint.name,
             });
           }
         }
       }
 
       // Notify on reassignment
-      if (
-        data.assignedTo &&
-        oldAssignedTo !== data.assignedTo &&
-        data.assignedTo
-      ) {
-        const newEmployee = await this.employeeRepository.findOne({
-          where: { employeeId: data.assignedTo },
-          relations: ["user"],
-        });
+      if ("assignedTo" in data && oldAssignedTo !== data.assignedTo) {
+        const newEmployee = data.assignedTo
+          ? await this.employeeRepository.findOne({
+              where: { employeeId: data.assignedTo },
+              relations: ["user"],
+            })
+          : null;
 
         const oldEmployee = oldAssignedTo
           ? await this.employeeRepository.findOne({
@@ -679,10 +732,10 @@ export class ProjectService {
           await notificationService.notifyTaskReassigned({
             newEmployeeUserId: newEmployee.user.userId,
             oldEmployeeUserId: oldEmployee?.user?.userId,
-            taskTitle: task.title,
-            taskId: task.taskId,
-            projectName: task.sprint.project.name,
-            sprintName: task.sprint.name,
+            taskTitle: updatedTask.title,
+            taskId: updatedTask.taskId,
+            projectName: updatedTask.sprint.project.name,
+            sprintName: updatedTask.sprint.name,
             reassignedByName: updatedByName,
             reassignedByUserId: updatedByUserId,
           });
@@ -713,7 +766,7 @@ export class ProjectService {
       status?: TaskStatus;
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<{ tasks: Task[]; total: number }> {
     const queryBuilder = this.taskRepository
       .createQueryBuilder("task")
@@ -754,7 +807,7 @@ export class ProjectService {
       employeeId: string;
       role?: SprintMemberRole;
     },
-    addedByUserId?: string
+    addedByUserId?: string,
   ): Promise<SprintMember> {
     // Check if member already exists
     const existing = await this.sprintMemberRepository.findOne({
@@ -822,7 +875,7 @@ export class ProjectService {
   async removeSprintMember(
     sprintId: string,
     employeeId: string,
-    removedByUserId?: string
+    removedByUserId?: string,
   ): Promise<void> {
     const member = await this.sprintMemberRepository
       .createQueryBuilder("member")
@@ -878,7 +931,7 @@ export class ProjectService {
   async updateSprintMemberRole(
     sprintId: string,
     employeeId: string,
-    role: SprintMemberRole
+    role: SprintMemberRole,
   ): Promise<SprintMember | null> {
     const member = await this.sprintMemberRepository
       .createQueryBuilder("member")
@@ -947,7 +1000,7 @@ export class ProjectService {
    */
   async updateComment(
     commentId: string,
-    content: string
+    content: string,
   ): Promise<TaskComment | null> {
     const comment = await this.commentRepository.findOne({
       where: { commentId },
@@ -1007,7 +1060,7 @@ export class ProjectService {
    * Get attachment by ID
    */
   async getAttachmentById(
-    attachmentId: string
+    attachmentId: string,
   ): Promise<TaskAttachment | null> {
     return await this.attachmentRepository.findOne({
       where: { attachmentId },
@@ -1026,7 +1079,7 @@ export class ProjectService {
       employeeId: string;
       role?: ProjectMemberRole;
     },
-    addedByUserId?: string
+    addedByUserId?: string,
   ): Promise<ProjectMember> {
     // Check if member already exists
     const existing = await this.projectMemberRepository.findOne({
@@ -1093,7 +1146,7 @@ export class ProjectService {
   async removeProjectMember(
     projectId: string,
     employeeId: string,
-    removedByUserId?: string
+    removedByUserId?: string,
   ): Promise<void> {
     const member = await this.projectMemberRepository
       .createQueryBuilder("member")
@@ -1145,7 +1198,7 @@ export class ProjectService {
   async updateProjectMemberRole(
     projectId: string,
     employeeId: string,
-    role: ProjectMemberRole
+    role: ProjectMemberRole,
   ): Promise<ProjectMember | null> {
     const member = await this.projectMemberRepository
       .createQueryBuilder("member")

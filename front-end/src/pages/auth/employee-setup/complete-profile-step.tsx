@@ -13,6 +13,8 @@ import {
   SelectChangeEvent,
   Grid,
 } from "@mui/material";
+import dayjs, { Dayjs } from "dayjs";
+import CustomDatePicker from "../../components/DatePicker";
 
 import { completeEmployeeSetup } from "../../../services/employee-setup.service";
 
@@ -31,7 +33,7 @@ const CompleteProfileStep: React.FC<CompleteProfileStepProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    dateOfBirth: "",
+    dateOfBirth: null as Dayjs | null,
     hireDate: new Date().toISOString().split("T")[0], // Default to today
     gender: "",
     maritalStatus: "",
@@ -61,7 +63,16 @@ const CompleteProfileStep: React.FC<CompleteProfileStepProps> = ({
 
     try {
       setLoading(true);
-      const response = await completeEmployeeSetup(token, formData);
+
+      // Format the data for submission
+      const submissionData = {
+        ...formData,
+        dateOfBirth: formData.dateOfBirth
+          ? formData.dateOfBirth.format("YYYY-MM-DD")
+          : "",
+      };
+
+      const response = await completeEmployeeSetup(token, submissionData);
 
       if (response.success) {
         onSuccess();
@@ -91,20 +102,24 @@ const CompleteProfileStep: React.FC<CompleteProfileStepProps> = ({
       )}
 
       <Grid container spacing={2}>
-        {/* Personal Information */}
-        <Grid size={12}>
-          <Typography variant="subtitle1" fontWeight="bold" mt={2} mb={1}>
-            Personal Information
-          </Typography>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <CustomDatePicker
+            label="Date of Birth"
+            value={formData.dateOfBirth}
+            onChange={(newValue: Dayjs | null) =>
+              setFormData((prev) => ({ ...prev, dateOfBirth: newValue }))
+            }
+            maxDate={dayjs()}
+          />
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
           <TextField
             fullWidth
             type="date"
-            label="Date of Birth"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
+            label="Hire Date"
+            name="hireDate"
+            value={formData.hireDate}
             onChange={handleInputChange}
             InputLabelProps={{ shrink: true }}
           />

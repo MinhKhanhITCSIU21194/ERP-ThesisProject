@@ -188,7 +188,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         slotProps={{
           paper: {
             sx: {
-              width: 400,
+              width: 600,
               maxHeight: 600,
               mt: 1.5,
             },

@@ -78,11 +78,19 @@ export const completeEmployeeSetup = async (
   employeeData: any
 ): Promise<CompleteSetupResponse> => {
   try {
+    // Get the access token from localStorage (set during password setup)
+    const accessToken = localStorage.getItem("accessToken");
+
     const response = await axios.put(
       `${API_URL}/employee-setup/complete`,
       { token, ...employeeData },
       {
         withCredentials: true,
+        headers: accessToken
+          ? {
+              Authorization: `Bearer ${accessToken}`,
+            }
+          : {},
       }
     );
     return response.data;

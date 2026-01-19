@@ -58,7 +58,7 @@ function DepartmentInfoView({
     if (department && open) {
       setFormData({
         name: department.name || "",
-        managerId: department.manager?.employeeId || "",
+        managerId: department.manager?.employeeId || (department as any).managerId || "",
         parentId: department.parentId || "",
       });
     } else if (isAddMode && open) {

@@ -49,6 +49,7 @@ import {
   getTaskById,
   updateTask,
   deleteTask,
+  getProjectById,
 } from "../../../../../services/project.service";
 import CustomButton from "../../../../components/Button";
 import {
@@ -58,6 +59,7 @@ import {
   TaskType,
   TaskComment,
   TaskAttachment,
+  ProjectMember,
 } from "../../../../../data/project/project";
 import { UserPermission } from "../../../../../data/auth/role";
 import AuthContext from "../../../../../context/auth-provider";
@@ -78,29 +80,32 @@ function TaskDetailView() {
   const [newComment, setNewComment] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [confirmDialog, setConfirmDialog] = useState({ open: false });
-  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
 
   // Update breadcrumb with task title
   useBreadcrumbLabel(task?.title || `Task #${id}`);
 
   useEffect(() => {
     if (id) {
-      dispatch(getTaskById(id)).then((result: any) => {
+      dispatch(getTaskById(id)).then(async (result: any) => {
         if (result.payload) {
           setTask(result.payload);
           setEditedTask(result.payload);
           // Fetch project members for assignee dropdown
           if (result.payload.sprint?.projectId) {
-            axios
-              .get(`/projects/${result.payload.sprint.projectId}`)
-              .then((res) => {
-                if (res.data.data.members) {
-                  setProjectMembers(res.data.data.members);
-                }
-              })
-              .catch((err) =>
-                console.error("Error fetching project members:", err)
+            try {
+              const projectResult = await dispatch(
+                getProjectById(result.payload.sprint.projectId),
               );
+              if (
+                projectResult.payload &&
+                (projectResult.payload as any).members
+              ) {
+                setProjectMembers((projectResult.payload as any).members);
+              }
+            } catch (err) {
+              console.error("Error fetching project members:", err);
+            }
           }
         }
       });
@@ -691,7 +696,7 @@ function TaskDetailView() {
                           onChange={(e) =>
                             handleFieldChange(
                               "assignedTo",
-                              e.target.value || undefined
+                              e.target.value || undefined,
                             )
                           }
                           displayEmpty
@@ -699,31 +704,33 @@ function TaskDetailView() {
                           <MenuItem value="">
                             <em>Unassigned</em>
                           </MenuItem>
-                          {projectMembers.map((member) => (
-                            <MenuItem
-                              key={member.employee.employeeId}
-                              value={member.employee.employeeId}
-                            >
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
+                          {projectMembers
+                            .filter((member) => member.employee)
+                            .map((member) => (
+                              <MenuItem
+                                key={member.employee!.employeeId}
+                                value={member.employee!.employeeId}
                               >
-                                <Avatar
-                                  sx={{ width: 24, height: 24, fontSize: 12 }}
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
                                 >
-                                  {member.employee.firstName[0]}
-                                  {member.employee.lastName[0]}
-                                </Avatar>
-                                <Typography variant="body2">
-                                  {member.employee.firstName}{" "}
-                                  {member.employee.lastName}
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          ))}
+                                  <Avatar
+                                    sx={{ width: 24, height: 24, fontSize: 12 }}
+                                  >
+                                    {member.employee!.firstName[0]}
+                                    {member.employee!.lastName[0]}
+                                  </Avatar>
+                                  <Typography variant="body2">
+                                    {member.employee!.firstName}{" "}
+                                    {member.employee!.lastName}
+                                  </Typography>
+                                </Box>
+                              </MenuItem>
+                            ))}
                         </Select>
                       </FormControl>
                     ) : task.assignee ? (
@@ -761,7 +768,7 @@ function TaskDetailView() {
                           onChange={(e) =>
                             handleFieldChange(
                               "priority",
-                              e.target.value as TaskPriority
+                              e.target.value as TaskPriority,
                             )
                           }
                         >
@@ -802,7 +809,7 @@ function TaskDetailView() {
                           onChange={(e) =>
                             handleFieldChange(
                               "taskType",
-                              e.target.value as TaskType
+                              e.target.value as TaskType,
                             )
                           }
                         >
@@ -836,7 +843,7 @@ function TaskDetailView() {
                         onChange={(e) =>
                           handleFieldChange(
                             "storyPoints",
-                            Number(e.target.value)
+                            Number(e.target.value),
                           )
                         }
                       />
@@ -870,7 +877,7 @@ function TaskDetailView() {
                         onChange={(e) =>
                           handleFieldChange(
                             "estimatedHours",
-                            Number(e.target.value)
+                            Number(e.target.value),
                           )
                         }
                       />
@@ -901,7 +908,7 @@ function TaskDetailView() {
                         onChange={(e) =>
                           handleFieldChange(
                             "actualHours",
-                            Number(e.target.value)
+                            Number(e.target.value),
                           )
                         }
                       />

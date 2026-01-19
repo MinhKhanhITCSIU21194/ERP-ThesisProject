@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import dayjs from "dayjs";
 import {
   Paper,
   Typography,
@@ -110,7 +111,7 @@ function ContractListView() {
           (c: Contract) => c.status === ContractStatus.ACTIVE
         );
         return activeContract?.endDate
-          ? new Date(activeContract.endDate).toLocaleDateString()
+          ? dayjs(activeContract.endDate).format("DD-MM-YYYY")
           : "N/A";
       },
     },

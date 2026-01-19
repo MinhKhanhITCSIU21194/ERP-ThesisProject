@@ -35,6 +35,7 @@ function CustomDatePicker({
         minDate={minDate}
         maxDate={maxDate}
         disabled={disabled}
+        format="DD-MM-YYYY"
         slotProps={{
           textField: {
             fullWidth: true,

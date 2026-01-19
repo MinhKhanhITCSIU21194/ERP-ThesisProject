@@ -512,8 +512,16 @@ export class EmployeeService {
     const savedEmployee = await this.employeeRepository.save(employee);
 
     // Create user account with isActive=false
+    // Ensure firstName and lastName are strings and handle edge cases
+    const firstName = String(data.firstName || "").trim();
+    const lastName = String(data.lastName || "").trim();
+    
+    if (!firstName || !lastName) {
+      throw new Error("First name and last name are required for user account creation");
+    }
+    
     const username =
-      `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}`.replace(
+      `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(
         /\s+/g,
         ""
       );

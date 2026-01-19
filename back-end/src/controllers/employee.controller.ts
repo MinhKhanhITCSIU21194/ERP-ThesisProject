@@ -535,22 +535,23 @@ export class EmployeeController {
       // Transform Excel data to employee objects
       const employeesData = rawData.map((row) => {
         const employeeData: any = {
-          employeeCode: row["Employee Code"] || undefined,
-          firstName: row["First Name"],
-          lastName: row["Last Name"],
-          email: row["Email"],
-          phoneNumber: row["Phone Number"] || undefined,
-          position: row["Position"] || undefined,
-          department: row["Department"] || undefined,
+          employeeCode: row["Employee Code"] ? String(row["Employee Code"]).trim() : undefined,
+          firstName: row["First Name"] ? String(row["First Name"]).trim() : "",
+          lastName: row["Last Name"] ? String(row["Last Name"]).trim() : "",
+          middleName: row["Middle Name"] ? String(row["Middle Name"]).trim() : undefined,
+          email: row["Email"] ? String(row["Email"]).trim() : "",
+          phoneNumber: row["Phone Number"] ? String(row["Phone Number"]).trim() : undefined,
+          position: row["Position"] ? String(row["Position"]).trim() : undefined,
+          department: row["Department"] ? String(row["Department"]).trim() : undefined,
           employmentStatus: row["Employment Status"] || "Active",
           hireDate: row["Hire Date"] ? new Date(row["Hire Date"]) : undefined,
-          address: row["Address"] || undefined,
-          city: row["City"] || undefined,
-          state: row["State"] || undefined,
-          postalCode: row["Postal Code"] || undefined,
-          country: row["Country"] || undefined,
-          emergencyContactName: row["Emergency Contact Name"] || undefined,
-          emergencyContactPhone: row["Emergency Contact Phone"] || undefined,
+          currentAddress: row["Address"] ? String(row["Address"]).trim() : undefined,
+          city: row["City"] ? String(row["City"]).trim() : undefined,
+          state: row["State"] ? String(row["State"]).trim() : undefined,
+          postalCode: row["Postal Code"] ? String(row["Postal Code"]).trim() : undefined,
+          country: row["Country"] ? String(row["Country"]).trim() : undefined,
+          emergencyContactName: row["Emergency Contact Name"] ? String(row["Emergency Contact Name"]).trim() : undefined,
+          emergencyContactPhone: row["Emergency Contact Phone"] ? String(row["Emergency Contact Phone"]).trim() : undefined,
         };
 
         // Add audit info

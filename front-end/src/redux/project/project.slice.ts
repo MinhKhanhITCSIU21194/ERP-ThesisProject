@@ -233,8 +233,16 @@ const projectSlice = createSlice({
       .addCase(updateSprint.fulfilled, (state, action) => {
         state.isLoading = false;
         state.success = true;
+        // Update currentSprint if it matches
         if (state.currentSprint?.sprintId === action.payload.sprintId) {
           state.currentSprint = action.payload;
+        }
+        // Update the sprint in the sprints array
+        const index = state.sprints.findIndex(
+          (sprint) => sprint.sprintId === action.payload.sprintId,
+        );
+        if (index !== -1) {
+          state.sprints[index] = action.payload;
         }
       })
       .addCase(updateSprint.rejected, (state, action) => {

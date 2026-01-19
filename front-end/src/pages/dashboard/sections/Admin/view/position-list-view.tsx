@@ -63,7 +63,7 @@ function PositionListView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"edit" | "add">("edit");
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(
-    null
+    null,
   );
   const [formData, setFormData] = useState({
     name: "",
@@ -190,7 +190,7 @@ function PositionListView() {
           updatePosition({
             positionId: selectedPosition.id,
             positionData,
-          })
+          }),
         ).unwrap();
       } else {
         await dispatch(createPosition(positionData)).unwrap();
@@ -336,7 +336,7 @@ function PositionListView() {
 
         // Check permissions
         const positionPermission = user?.role?.permissions?.find(
-          (p) => p.permission === UserPermission.POSITION_MANAGEMENT
+          (p) => p.permission === UserPermission.POSITION_MANAGEMENT,
         );
 
         const canUpdate = positionPermission?.canUpdate || false;
@@ -418,6 +418,7 @@ function PositionListView() {
           </Box>
         </Box>
         <CustomTable
+          checkboxSelection={false}
           onSelectionChange={onSelectionChange}
           loading={isLoading}
           sx={{ padding: "2" }}

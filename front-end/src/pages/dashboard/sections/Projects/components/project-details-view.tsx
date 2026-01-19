@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -49,6 +49,7 @@ import {
 } from "../../../../../data/project/project";
 import { paths } from "../../../../../routes/paths";
 import SprintListView from "../view/sprint-list-view";
+import SprintDetailsView from "./sprint-details-view";
 import ConfirmationDialog from "../../../../components/ConfirmationWindow";
 import dayjs, { Dayjs } from "dayjs";
 import CustomDatePicker from "../../../../components/DatePicker";
@@ -89,18 +90,25 @@ function ProjectDetailsView() {
   const [sprintDraft, setSprintDraft] =
     useState<CreateSprintData>(sprintFormData);
   const [sprintDebounceTimer, setSprintDebounceTimer] = useState<number | null>(
-    null
+    null,
   );
 
   // Member management state
   const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<ProjectMemberRole>(
-    ProjectMemberRole.DEVELOPER
+    ProjectMemberRole.DEVELOPER,
   );
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState<string>("");
   const [sprintDeleteConfirm, setSprintDeleteConfirm] = useState<{
+    open: boolean;
+    sprint: Sprint | null;
+  }>({
+    open: false,
+    sprint: null,
+  });
+  const [sprintEditDialog, setSprintEditDialog] = useState<{
     open: boolean;
     sprint: Sprint | null;
   }>({
@@ -152,7 +160,7 @@ function ProjectDetailsView() {
         // Auto-add creator as product owner when creating new project
         if (!isEditMode && user?.employeeId && projectMembers.length === 0) {
           const creatorEmployee = response.data?.find(
-            (e) => e.employeeId === user.employeeId
+            (e) => e.employeeId === user.employeeId,
           );
 
           if (creatorEmployee) {
@@ -340,7 +348,7 @@ function ProjectDetailsView() {
       createSprint({
         ...sprintDraft,
         projectId: id,
-      })
+      }),
     );
 
     // Reset form and close dialog
@@ -367,8 +375,10 @@ function ProjectDetailsView() {
   };
 
   const handleSprintEdit = (sprint: Sprint) => {
-    // TODO: Implement sprint edit dialog
-    console.log("Edit sprint:", sprint);
+    setSprintEditDialog({
+      open: true,
+      sprint: sprint,
+    });
   };
 
   const handleSprintViewBoard = (sprint: Sprint) => {
@@ -402,13 +412,13 @@ function ProjectDetailsView() {
 
     // Find the employee object from availableEmployees
     const employee = availableEmployees?.find(
-      (e) => e.employeeId === selectedEmployee
+      (e) => e.employeeId === selectedEmployee,
     );
     if (!employee) return;
 
     // Check if employee is already a member
     const isAlreadyMember = projectMembers.some(
-      (m) => m.employeeId === selectedEmployee
+      (m) => m.employeeId === selectedEmployee,
     );
 
     if (isAlreadyMember) {
@@ -442,9 +452,16 @@ function ProjectDetailsView() {
     setProjectMembers(projectMembers.filter((m) => m.memberId !== memberId));
   };
 
+  // Memoize onUpdate callback to prevent recreating on every render
+  const handleSprintUpdate = useCallback(() => {
+    if (id) {
+      dispatch(getSprintsByProject({ projectId: id, limit: 100 }));
+    }
+  }, [id, dispatch]);
+
   // Check permissions
   const projectPermission = user?.role?.permissions?.find(
-    (p) => p.permission === UserPermission.PROJECT_MANAGEMENT
+    (p) => p.permission === UserPermission.PROJECT_MANAGEMENT,
   );
 
   const canCreate = projectPermission?.canCreate || false;
@@ -544,7 +561,7 @@ function ProjectDetailsView() {
                 onChange={(e) =>
                   handleInputChange(
                     "priority",
-                    e.target.value as ProjectPriority
+                    e.target.value as ProjectPriority,
                   )
                 }
                 disabled={isEditMode && !canUpdate}
@@ -562,7 +579,7 @@ function ProjectDetailsView() {
                   onChange={(newVal: Dayjs | null) =>
                     handleInputChange(
                       "startDate",
-                      newVal ? newVal.format("YYYY-MM-DD") : ""
+                      newVal ? newVal.format("YYYY-MM-DD") : "",
                     )
                   }
                   disabled={isEditMode && !canUpdate}
@@ -571,10 +588,13 @@ function ProjectDetailsView() {
                 <CustomDatePicker
                   label="End Date"
                   value={formData.endDate ? dayjs(formData.endDate) : null}
+                  minDate={
+                    formData.startDate ? dayjs(formData.startDate) : undefined
+                  }
                   onChange={(newVal: Dayjs | null) =>
                     handleInputChange(
                       "endDate",
-                      newVal ? newVal.format("YYYY-MM-DD") : ""
+                      newVal ? newVal.format("YYYY-MM-DD") : "",
                     )
                   }
                   disabled={isEditMode && !canUpdate}
@@ -606,7 +626,7 @@ function ProjectDetailsView() {
                 }}
                 value={
                   availableEmployees?.find(
-                    (e) => e.employeeId === selectedEmployee
+                    (e) => e.employeeId === selectedEmployee,
                   ) || null
                 }
                 onChange={(_, newValue) => {
@@ -774,7 +794,7 @@ function ProjectDetailsView() {
                               name: value,
                             }));
                             setSprintDebounceTimer(null);
-                          }, 2500)
+                          }, 2500),
                         );
                       }}
                     />
@@ -797,7 +817,7 @@ function ProjectDetailsView() {
                               goal: value,
                             }));
                             setSprintDebounceTimer(null);
-                          }, 2500)
+                          }, 2500),
                         );
                       }}
                     />
@@ -825,7 +845,7 @@ function ProjectDetailsView() {
                               startDate: value,
                             }));
                             setSprintDebounceTimer(null);
-                          }, 2500)
+                          }, 2500),
                         );
                       }}
                     />
@@ -848,7 +868,7 @@ function ProjectDetailsView() {
                               endDate: value,
                             }));
                             setSprintDebounceTimer(null);
-                          }, 2500)
+                          }, 2500),
                         );
                       }}
                     />
@@ -918,6 +938,14 @@ function ProjectDetailsView() {
         severity="error"
         onConfirm={handleSprintDeleteConfirm}
         onCancel={() => setSprintDeleteConfirm({ open: false, sprint: null })}
+      />
+
+      {/* Sprint Edit Dialog */}
+      <SprintDetailsView
+        open={sprintEditDialog.open}
+        sprint={sprintEditDialog.sprint}
+        onClose={() => setSprintEditDialog({ open: false, sprint: null })}
+        onUpdate={handleSprintUpdate}
       />
     </Box>
   );
