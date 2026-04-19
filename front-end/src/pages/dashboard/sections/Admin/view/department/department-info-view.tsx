@@ -58,7 +58,8 @@ function DepartmentInfoView({
     if (department && open) {
       setFormData({
         name: department.name || "",
-        managerId: department.manager?.employeeId || (department as any).managerId || "",
+        managerId:
+          department.manager?.employeeId || (department as any).managerId || "",
         parentId: department.parentId || "",
       });
     } else if (isAddMode && open) {
@@ -77,7 +78,7 @@ function DepartmentInfoView({
         getEmployeeList({
           pageIndex: 0,
           pageSize: 50,
-        })
+        }),
       )
         .unwrap()
         .then((result) => setAvailableManagers(result.data || []))
@@ -114,7 +115,7 @@ function DepartmentInfoView({
 
   // Filter out current department and its children from parent options
   const availableParentDepartments = departments.filter(
-    (d) => d.id !== department?.id && !isDescendant(d, department?.id || "")
+    (d) => d.id !== department?.id && !isDescendant(d, department?.id || ""),
   );
 
   // Helper function to check if a department is a descendant
@@ -122,14 +123,14 @@ function DepartmentInfoView({
     if (dept.id === targetId) return true;
     if (dept.childrenDepartment && dept.childrenDepartment.length > 0) {
       return dept.childrenDepartment.some((child) =>
-        isDescendant(child, targetId)
+        isDescendant(child, targetId),
       );
     }
     return false;
   }
 
   const selectedManager = availableManagers.find(
-    (e) => e.employeeId === formData.managerId
+    (e) => e.employeeId === formData.managerId,
   );
 
   return (

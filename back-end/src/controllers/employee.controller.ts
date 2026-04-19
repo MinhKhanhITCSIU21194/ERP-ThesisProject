@@ -69,7 +69,7 @@ export class EmployeeController {
 
       const result = await this.employeeService.getEmployees(
         pagination,
-        filters
+        filters,
       );
 
       res.status(200).json({
@@ -191,7 +191,7 @@ export class EmployeeController {
 
       const employee = await this.employeeService.updateEmployee(
         id,
-        employeeData
+        employeeData,
       );
 
       res.status(200).json({
@@ -310,7 +310,7 @@ export class EmployeeController {
 
       const result = await this.employeeService.getEmployeesByDepartment(
         departmentId,
-        pagination
+        pagination,
       );
 
       res.status(200).json({
@@ -345,7 +345,7 @@ export class EmployeeController {
       const result = await this.employeeService.getEmployeesByManager(
         managerId,
         pagination,
-        search
+        search,
       );
 
       res.status(200).json({
@@ -374,7 +374,7 @@ export class EmployeeController {
         pageIndex: parseInt(req.query.pageIndex as string) || 0,
         pageSize: Math.min(
           parseInt(req.query.pageSize as string) || 1000,
-          10000
+          10000,
         ), // Max 10000 for export
         sortBy: (req.query.sortBy as string) || "createdAt",
         sortOrder: (req.query.sortOrder as "ASC" | "DESC") || "DESC",
@@ -418,7 +418,7 @@ export class EmployeeController {
       // Get employees with filters
       const result = await this.employeeService.getEmployees(
         pagination,
-        filters
+        filters,
       );
 
       // Transform data for Excel export
@@ -483,13 +483,13 @@ export class EmployeeController {
       // Set headers for file download
       res.setHeader(
         "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       );
       res.setHeader(
         "Content-Disposition",
         `attachment; filename=employees_${
           new Date().toISOString().split("T")[0]
-        }.xlsx`
+        }.xlsx`,
       );
 
       res.send(buffer);
@@ -535,23 +535,41 @@ export class EmployeeController {
       // Transform Excel data to employee objects
       const employeesData = rawData.map((row) => {
         const employeeData: any = {
-          employeeCode: row["Employee Code"] ? String(row["Employee Code"]).trim() : undefined,
+          employeeCode: row["Employee Code"]
+            ? String(row["Employee Code"]).trim()
+            : undefined,
           firstName: row["First Name"] ? String(row["First Name"]).trim() : "",
           lastName: row["Last Name"] ? String(row["Last Name"]).trim() : "",
-          middleName: row["Middle Name"] ? String(row["Middle Name"]).trim() : undefined,
+          middleName: row["Middle Name"]
+            ? String(row["Middle Name"]).trim()
+            : undefined,
           email: row["Email"] ? String(row["Email"]).trim() : "",
-          phoneNumber: row["Phone Number"] ? String(row["Phone Number"]).trim() : undefined,
-          position: row["Position"] ? String(row["Position"]).trim() : undefined,
-          department: row["Department"] ? String(row["Department"]).trim() : undefined,
+          phoneNumber: row["Phone Number"]
+            ? String(row["Phone Number"]).trim()
+            : undefined,
+          position: row["Position"]
+            ? String(row["Position"]).trim()
+            : undefined,
+          department: row["Department"]
+            ? String(row["Department"]).trim()
+            : undefined,
           employmentStatus: row["Employment Status"] || "Active",
           hireDate: row["Hire Date"] ? new Date(row["Hire Date"]) : undefined,
-          currentAddress: row["Address"] ? String(row["Address"]).trim() : undefined,
+          currentAddress: row["Address"]
+            ? String(row["Address"]).trim()
+            : undefined,
           city: row["City"] ? String(row["City"]).trim() : undefined,
           state: row["State"] ? String(row["State"]).trim() : undefined,
-          postalCode: row["Postal Code"] ? String(row["Postal Code"]).trim() : undefined,
+          postalCode: row["Postal Code"]
+            ? String(row["Postal Code"]).trim()
+            : undefined,
           country: row["Country"] ? String(row["Country"]).trim() : undefined,
-          emergencyContactName: row["Emergency Contact Name"] ? String(row["Emergency Contact Name"]).trim() : undefined,
-          emergencyContactPhone: row["Emergency Contact Phone"] ? String(row["Emergency Contact Phone"]).trim() : undefined,
+          emergencyContactName: row["Emergency Contact Name"]
+            ? String(row["Emergency Contact Name"]).trim()
+            : undefined,
+          emergencyContactPhone: row["Emergency Contact Phone"]
+            ? String(row["Emergency Contact Phone"]).trim()
+            : undefined,
         };
 
         // Add audit info
@@ -585,9 +603,8 @@ export class EmployeeController {
       }
 
       // Import employees (create in bulk)
-      const results = await this.employeeService.bulkCreateEmployees(
-        employeesData
-      );
+      const results =
+        await this.employeeService.bulkCreateEmployees(employeesData);
 
       res.status(201).json({
         success: true,
